@@ -1,0 +1,8 @@
+{
+  "name": "kisan-mitra",
+  "description": "Imported from GitHub: Blessy7-eng/kisan-mitra",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

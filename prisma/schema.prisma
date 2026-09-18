@@ -1,0 +1,87 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  FARMER
+  OFFICER
+  ADMIN
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  phone            String    @unique
+  passwordHash     String
+  role             Role      @default(FARMER)
+  language         String    @default("en")
+  assignedCentreId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  bookings         Booking[]
+
+  @@index([role])
+}
+
+model Centre {
+  id             String    @id @default(cuid())
+  name           String
+  location       String
+  dailyCapacity  Int       @default(60)
+  processingRate Float     @default(5.0)
+  currentQueue   Int       @default(0)
+  status         String    @default("ACTIVE")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  slots          Slot[]
+  bookings       Booking[]
+
+  @@index([status])
+}
+
+model Slot {
+  id          String    @id @default(cuid())
+  centreId    String
+  date        DateTime
+  startTime   String
+  endTime     String
+  capacity    Int       @default(15)
+  bookedCount Int       @default(0)
+  status      String    @default("OPEN")
+  createdAt   DateTime  @default(now())
+
+  centre      Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+
+  @@index([centreId, date])
+  @@index([status])
+}
+
+model Booking {
+  id           String    @id @default(cuid())
+  farmerId     String
+  centreId     String
+  slotId       String
+  tokenNumber  String    @unique
+  status       String    @default("PENDING")
+  etaMinutes   Int       @default(0)
+  arrivalStart String
+  arrivalEnd   String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  farmer       User      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centre       Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  slot         Slot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@index([farmerId])
+  @@index([centreId, status])
+  @@index([slotId])
+}
