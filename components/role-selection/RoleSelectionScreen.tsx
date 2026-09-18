@@ -37,118 +37,126 @@ export default function RoleSelectionScreen({
 
   return (
     <div className="role-selection-wrapper">
-      {/* Top Utility Bar with Demo Notice & Language Selector */}
-      <div className="top-utility-bar">
-        <div className="utility-left">
-          <span className="demo-tag">
-            <Info size={13} /> {t.demoBanner}
-          </span>
-        </div>
-        <div className="utility-right">
-          <button
-            type="button"
-            className="help-trigger-btn"
-            onClick={() => setShowHelpModal(true)}
-            aria-label="Help & FAQ"
-          >
-            <HelpCircle size={14} />
-            <span>{currentLanguage === 'mr' ? 'मदत व प्रश्न' : currentLanguage === 'hi' ? 'सहायता एवं प्रश्न' : 'Help & FAQ'}</span>
-          </button>
-
-          <label className="language-select-label" aria-label="Language selector">
-            <Globe size={14} />
-            <select
-              value={currentLanguage}
-              onChange={(e) => onLanguageChange(e.target.value as Language)}
-              className="lang-dropdown"
-              id="role-selection-language-select"
+      {/* Scoped Hero Section with Top Navigation, Branding, Value Prop and Steps */}
+      <section className="hero-section" id="hero-section">
+        {/* Top Utility Bar with Demo Notice & Language Selector */}
+        <div className="top-utility-bar">
+          <div className="utility-left">
+            <span className="demo-tag" id="demo-environment-tag">
+              <Info size={13} /> {t.demoBanner}
+            </span>
+          </div>
+          <div className="utility-right">
+            <button
+              type="button"
+              className="help-trigger-btn"
+              onClick={() => setShowHelpModal(true)}
+              aria-label="Help & FAQ"
+              id="help-faq-btn"
             >
-              <option value="en">English</option>
-              <option value="hi">हिंदी</option>
-              <option value="mr">मराठी</option>
-            </select>
-          </label>
-        </div>
-      </div>
+              <HelpCircle size={14} />
+              <span>{currentLanguage === 'mr' ? 'मदत व प्रश्न' : currentLanguage === 'hi' ? 'सहायता एवं प्रश्न' : 'Help & FAQ'}</span>
+            </button>
 
-      <div className="role-selection-container">
-        {/* Header Branding */}
-        <header className="role-header-box">
-          <div className="role-header-brand">
-            <Sprout size={24} color="#2f6f73" />
-            <b>{t.appName.toUpperCase()}</b>
-          </div>
-          <h1>{t.tagline}</h1>
-          <p className="role-tagline">
-            &ldquo;Know your slot. Know your token. Know when to arrive.&rdquo;
-          </p>
-        </header>
-
-        {/* Impact Statement Section */}
-        <section className="impact-statement-card">
-          <div className="impact-header">
-            <TrendingDown size={20} className="impact-icon" />
-            <div>
-              <h2>{t.impactHeadline}</h2>
-              <p>{t.impactSubhead}</p>
-            </div>
-          </div>
-          <div className="impact-points-grid">
-            {t.impactPoints.map((point, index) => (
-              <div className="impact-point-item" key={index}>
-                <Check size={15} className="point-icon" />
-                <span>{point}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="how-it-works-section">
-          <div className="section-title-wrap">
-            <div className="eyebrow">{t.howItWorksTitle.toUpperCase()}</div>
-            <h2>{t.howItWorksSub}</h2>
-          </div>
-
-          <div className="steps-three-grid">
-            <div className="step-card">
-              <div className="step-badge">
-                <Clock size={16} /> <span>{t.steps[0].num}</span>
-              </div>
-              <h3>{t.steps[0].title}</h3>
-              <p>{t.steps[0].desc}</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-badge">
-                <Ticket size={16} /> <span>{t.steps[1].num}</span>
-              </div>
-              <h3>{t.steps[1].title}</h3>
-              <p>{t.steps[1].desc}</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-badge">
-                <Truck size={16} /> <span>{t.steps[2].num}</span>
-              </div>
-              <h3>{t.steps[2].title}</h3>
-              <p>{t.steps[2].desc}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Role Prompt & Security Message */}
-        <div className="role-prompt-heading">
-          <div className="eyebrow">{t.whoAreYou}</div>
-          <h2>{t.portalTitle}</h2>
-          <div className="security-notice-badge">
-            <Lock size={13} />
-            <span>{t.securityNotice}</span>
+            <label className="language-select-label" aria-label="Language selector" htmlFor="role-selection-language-select">
+              <Globe size={14} />
+              <select
+                value={currentLanguage}
+                onChange={(e) => onLanguageChange(e.target.value as Language)}
+                className="lang-dropdown hero-language-select"
+                id="role-selection-language-select"
+              >
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+                <option value="mr">मराठी</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        {/* Exactly Three Simple Options with Required Notices */}
-        <div className="role-cards-grid">
+        <div className="hero-inner-container">
+          {/* Header Branding */}
+          <header className="role-header-box">
+            <div className="role-header-brand">
+              <Sprout size={24} color="#8bd3c7" />
+              <b>{t.appName.toUpperCase()}</b>
+            </div>
+            <h1>{t.tagline}</h1>
+            <p className="role-tagline">
+              &ldquo;Know your slot. Know your token. Know when to arrive.&rdquo;
+            </p>
+          </header>
+
+          {/* Impact Statement Section */}
+          <section className="impact-statement-card" id="impact-statement-card">
+            <div className="impact-header">
+              <TrendingDown size={20} className="impact-icon" />
+              <div>
+                <h2>{t.impactHeadline}</h2>
+                <p>{t.impactSubhead}</p>
+              </div>
+            </div>
+            <div className="impact-points-grid">
+              {t.impactPoints.map((point, index) => (
+                <div className="impact-point-item" key={index}>
+                  <Check size={15} className="point-icon" />
+                  <span>{point}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* How It Works Section */}
+          <section className="how-it-works-section" id="how-it-works-section">
+            <div className="section-title-wrap">
+              <div className="eyebrow">{t.howItWorksTitle.toUpperCase()}</div>
+              <h2>{t.howItWorksSub}</h2>
+            </div>
+
+            <div className="steps-three-grid">
+              <div className="step-card">
+                <div className="step-badge">
+                  <Clock size={16} /> <span>{t.steps[0].num}</span>
+                </div>
+                <h3>{t.steps[0].title}</h3>
+                <p>{t.steps[0].desc}</p>
+              </div>
+
+              <div className="step-card">
+                <div className="step-badge">
+                  <Ticket size={16} /> <span>{t.steps[1].num}</span>
+                </div>
+                <h3>{t.steps[1].title}</h3>
+                <p>{t.steps[1].desc}</p>
+              </div>
+
+              <div className="step-card">
+                <div className="step-badge">
+                  <Truck size={16} /> <span>{t.steps[2].num}</span>
+                </div>
+                <h3>{t.steps[2].title}</h3>
+                <p>{t.steps[2].desc}</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      {/* Role Selection Portal Section */}
+      <section className="role-portal-section" id="role-portal-section">
+        <div className="role-selection-container">
+          {/* Role Prompt & Security Message */}
+          <div className="role-prompt-heading">
+            <div className="eyebrow">{t.whoAreYou}</div>
+            <h2>{t.portalTitle}</h2>
+            <div className="security-notice-badge">
+              <Lock size={13} />
+              <span>{t.securityNotice}</span>
+            </div>
+          </div>
+
+          {/* Exactly Three Simple Options with Required Notices */}
+          <div className="role-cards-grid">
           {/* Option 1: FARMER */}
           <div className="role-card farmer" id="role-card-farmer">
             <div className="role-card-content">
@@ -254,6 +262,7 @@ export default function RoleSelectionScreen({
           <span>Kisan-Mitra · Smart India Hackathon SIH26032 · Team Nexora</span>
         </footer>
       </div>
+      </section>
 
       {/* Help & Support Static FAQ Modal */}
       {showHelpModal && (
