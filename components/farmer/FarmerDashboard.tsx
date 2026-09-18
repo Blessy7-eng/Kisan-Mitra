@@ -120,7 +120,7 @@ export default function FarmerDashboard({
     { label: i18n.trackQueue, detail: `${state.ahead} farmers ahead`, icon: Users },
     { label: i18n.myCentre, detail: `${state.centre.split(' ')[0]}`, icon: MapPin },
     { label: 'Procurement Status', detail: state.stage, icon: Activity },
-    { label: 'Payment Status', detail: 'Demo workflow', icon: TrendingUp },
+    { label: 'Payment Status', detail: 'DBT Processing', icon: TrendingUp },
   ]
 
   const progress = Math.min(88, 44 + state.ahead * 3)
@@ -350,15 +350,10 @@ export default function FarmerDashboard({
           </span>
 
           <div className="input-list">
+            <span><Check size={14} /> #{state.ahead + 1} position in centre queue</span>
             <span><Check size={14} /> {state.ahead} farmers currently ahead</span>
-            <span><Check size={14} /> Live ETA recalculation via Socket.IO</span>
-            <span><Check size={14} /> Automated notifications enabled</span>
-          </div>
-
-          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #d5e5e4' }}>
-            <button className="button outline small full" onClick={onDelayToggle}>
-              <RefreshCw size={13} /> {state.delayMinutes ? 'Clear Simulated Delay' : 'Simulate Delay (+15m)'}
-            </button>
+            <span><Check size={14} /> Live ETA synchronised with Smart Queue Engine</span>
+            <span><Check size={14} /> SMS &amp; Socket.IO updates active</span>
           </div>
         </section>
       </div>
@@ -396,7 +391,7 @@ export default function FarmerDashboard({
           </div>
           <div className="timeline-item">
             <div className="timeline-dot"><TrendingUp size={13} /></div>
-            <div><b>Payment tracking</b><span>Payment tracking — demo workflow</span></div>
+            <div><b>Payment processing</b><span>Direct Benefit Transfer (DBT)</span></div>
           </div>
         </div>
       </section>

@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Kisan-Mitra | Intelligent Procurement Queue & Slot Orchestration',
-  description: 'A Smart India Hackathon prototype for predictable agricultural procurement through live queues, smart slots and dynamic ETA updates.',
+  description: 'Intelligent Procurement Queue & Slot Orchestration for predictable agricultural procurement through live queues, smart slots and dynamic ETA updates.',
   generator: 'v0.app',
   icons: {
     icon: [

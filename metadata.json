@@ -1,6 +1,6 @@
 {
-  "name": "kisan-mitra",
-  "description": "Imported from GitHub: Blessy7-eng/kisan-mitra",
+  "name": "Kisan-Mitra",
+  "description": "Intelligent Procurement Queue & Slot Orchestration",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

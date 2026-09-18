@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Sprout, Shield, LayoutDashboard, Check, ArrowRight, Activity, Zap } from 'lucide-react'
+import { Sprout, Shield, LayoutDashboard, ArrowRight, Check } from 'lucide-react'
 
 export type SelectedRole = 'farmer' | 'officer' | 'admin'
 
@@ -14,44 +14,43 @@ export default function RoleSelectionScreen({ onSelectRole }: RoleSelectionScree
     <div className="role-selection-wrapper">
       <div className="role-selection-container">
         {/* Header Branding */}
-        <div className="role-header-box">
+        <header className="role-header-box">
           <div className="role-header-brand">
-            <Sprout size={18} color="#9cd0c3" />
+            <Sprout size={20} color="#2f6f73" />
             <b>KISAN-MITRA</b>
-            <span>SIH26032 · Team Nexora</span>
           </div>
           <h1>Intelligent Procurement Queue &amp; Slot Orchestration</h1>
-          <p>
-            Eliminating long waiting times, scheduling opacity, and queue uncertainty at agricultural procurement centres across India.
+          <p className="role-tagline">
+            &ldquo;Know your slot. Know your token. Know when to arrive.&rdquo;
           </p>
-        </div>
+        </header>
 
-        {/* Role Prompt */}
+        {/* Section Heading */}
         <div className="role-prompt-heading">
-          <h2>Who are you?</h2>
-          <p>Choose your role to continue to the designated portal</p>
+          <h2>WHO ARE YOU?</h2>
+          <p>Select your access portal to continue</p>
         </div>
 
-        {/* Three Role Cards */}
+        {/* Exactly Three Simple Options */}
         <div className="role-cards-grid">
-          {/* Card 1: Farmer */}
+          {/* Option 1: FARMER */}
           <div className="role-card farmer" id="role-card-farmer">
-            <div>
+            <div className="role-card-content">
               <div className="role-card-icon">
                 <Sprout size={24} />
               </div>
               <h3>FARMER</h3>
-              <div className="role-card-desc">
-                For farmers bringing agricultural produce to government procurement centres.
-              </div>
               <ul className="role-card-bullets">
-                <li><Check size={14} /> Book a procurement slot</li>
-                <li><Check size={14} /> Get your digital token</li>
-                <li><Check size={14} /> Track your live queue</li>
-                <li><Check size={14} /> Know exactly when to arrive</li>
+                <li>
+                  <Check size={15} /> Book procurement slots
+                </li>
+                <li>
+                  <Check size={15} /> Track token, queue and ETA
+                </li>
               </ul>
             </div>
             <button
+              type="button"
               id="continue-farmer-btn"
               className="role-card-btn"
               onClick={() => onSelectRole('farmer')}
@@ -60,24 +59,24 @@ export default function RoleSelectionScreen({ onSelectRole }: RoleSelectionScree
             </button>
           </div>
 
-          {/* Card 2: Procurement Officer */}
+          {/* Option 2: PROCUREMENT OFFICER */}
           <div className="role-card officer" id="role-card-officer">
-            <div>
+            <div className="role-card-content">
               <div className="role-card-icon">
                 <Shield size={24} />
               </div>
               <h3>PROCUREMENT OFFICER</h3>
-              <div className="role-card-desc">
-                For authorized staff managing day-to-day procurement centre operations.
-              </div>
               <ul className="role-card-bullets">
-                <li><Check size={14} /> Manage live centre queue</li>
-                <li><Check size={14} /> Monitor centre conditions</li>
-                <li><Check size={14} /> Update processing conditions</li>
-                <li><Check size={14} /> Track incoming farmer flow</li>
+                <li>
+                  <Check size={15} /> Manage procurement centre queues
+                </li>
+                <li>
+                  <Check size={15} /> Control centre operations
+                </li>
               </ul>
             </div>
             <button
+              type="button"
               id="continue-officer-btn"
               className="role-card-btn"
               onClick={() => onSelectRole('officer')}
@@ -86,24 +85,24 @@ export default function RoleSelectionScreen({ onSelectRole }: RoleSelectionScree
             </button>
           </div>
 
-          {/* Card 3: Administrator */}
+          {/* Option 3: ADMINISTRATOR */}
           <div className="role-card admin" id="role-card-admin">
-            <div>
+            <div className="role-card-content">
               <div className="role-card-icon">
                 <LayoutDashboard size={24} />
               </div>
               <h3>ADMINISTRATOR</h3>
-              <div className="role-card-desc">
-                For state/district administrators monitoring the procurement network.
-              </div>
               <ul className="role-card-bullets">
-                <li><Check size={14} /> Monitor multiple centres</li>
-                <li><Check size={14} /> Compare centre load levels</li>
-                <li><Check size={14} /> View real-time network status</li>
-                <li><Check size={14} /> Monitor subsystem health</li>
+                <li>
+                  <Check size={15} /> Monitor procurement centres
+                </li>
+                <li>
+                  <Check size={15} /> View network operations
+                </li>
               </ul>
             </div>
             <button
+              type="button"
               id="continue-admin-btn"
               className="role-card-btn"
               onClick={() => onSelectRole('admin')}
@@ -113,21 +112,10 @@ export default function RoleSelectionScreen({ onSelectRole }: RoleSelectionScree
           </div>
         </div>
 
-        {/* Footer Architectural Transparency Banner */}
-        <div className="role-footer-banner">
-          <div className="role-footer-left">
-            <div className="role-footer-icon">
-              <Zap size={20} />
-            </div>
-            <div className="role-footer-text">
-              <b>Role Selection is an Authentication Context, Not a Security Bypass</b>
-              <span>Authoritative access control is strictly enforced by backend JWT verification and role-based policies (RBAC).</span>
-            </div>
-          </div>
-          <div className="role-footer-pill">
-            Aiven MySQL + Smart Queue Engine
-          </div>
-        </div>
+        {/* Clean, Simple Footer */}
+        <footer className="role-footer-simple">
+          <span>SIH 2026 · Nexora</span>
+        </footer>
       </div>
     </div>
   )

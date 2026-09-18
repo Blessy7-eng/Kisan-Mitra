@@ -14,6 +14,7 @@ export interface RegisterInput {
   name: string
   phone: string
   password: string
+  email?: string
   role?: Role
   language?: string
   assignedCentreId?: string
@@ -78,22 +79,27 @@ export async function loginUser(input: LoginInput) {
   const { phone, password } = input
 
   if (!phone || !password) {
-    throw new Error('Phone and password are required')
+    throw new Error('User ID or mobile number and password are required')
   }
 
   const cleanPhone = phone.trim()
 
-  const user = await prisma.user.findUnique({
-    where: { phone: cleanPhone },
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { phone: cleanPhone },
+        { id: cleanPhone },
+      ],
+    },
   })
 
   if (!user) {
-    throw new Error('Invalid phone number or password')
+    throw new Error('Invalid User ID / mobile number or password')
   }
 
   const valid = await comparePassword(password, user.passwordHash)
   if (!valid) {
-    throw new Error('Invalid phone number or password')
+    throw new Error('Invalid User ID / mobile number or password')
   }
 
   const token = signToken({

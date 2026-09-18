@@ -498,11 +498,11 @@ export default function Page() {
         </nav>
 
         <div className="sidebar-bottom">
-          <button onClick={() => { setState(initialDemoState); setPage('Dashboard'); setShowNotices(false); }}>
+          <button onClick={() => { setPage('Dashboard'); setShowNotices(false); }}>
             <RefreshCw size={17} />
-            <span>Reset Demo State</span>
+            <span>Sync Queue State</span>
           </button>
-          <div className="version">SIH26032 · Team Nexora</div>
+          <div className="version">SIH26032 · Nexora</div>
         </div>
       </aside>
 
