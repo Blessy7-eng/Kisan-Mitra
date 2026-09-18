@@ -313,7 +313,12 @@ function createFallbackStore() {
       update: async ({ where, data }: any) => {
         const idx = store.centres.findIndex((c) => c.id === where.id)
         if (idx === -1) throw new Error('Centre not found')
-        store.centres[idx] = { ...store.centres[idx], ...data, updatedAt: new Date() }
+        const currentQueue = data.currentQueue?.increment
+          ? store.centres[idx].currentQueue + data.currentQueue.increment
+          : data.currentQueue?.decrement
+          ? Math.max(0, store.centres[idx].currentQueue - data.currentQueue.decrement)
+          : data.currentQueue ?? store.centres[idx].currentQueue
+        store.centres[idx] = { ...store.centres[idx], ...data, currentQueue, updatedAt: new Date() }
         return enrichCentre(store.centres[idx])
       },
       create: async ({ data }: any) => {
@@ -484,16 +489,16 @@ function createResilientPrismaClient(): PrismaClient {
   const handler: ProxyHandler<any> = {
     get(target, prop, receiver) {
       if (prop === '$transaction') {
-        return async (arg: any) => {
+        return async (arg: any, options?: any) => {
           if (mySqlAvailable === false) {
-            return fallbackStore.$transaction(arg)
+            return fallbackStore.$transaction(arg, options)
           }
           try {
-            return await rawPrisma.$transaction(arg)
+            return await rawPrisma.$transaction(arg, options)
           } catch (err: any) {
             if (isConnectionError(err)) {
               mySqlAvailable = false
-              return fallbackStore.$transaction(arg)
+              return fallbackStore.$transaction(arg, options)
             }
             throw err
           }

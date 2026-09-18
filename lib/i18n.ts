@@ -103,7 +103,7 @@ export const translations = {
       emptyPassword: 'Please enter your password.',
       invalidMobile: 'Please enter a valid 10-digit mobile number.',
       generalError: 'Authentication failed. Please verify your credentials.',
-      demoAccessBtn: 'Demo Access / Quick Fill',
+      demoAccessBtn: 'Quick Fill Test Credentials',
     },
     register: {
       heading: 'Create Farmer Account',
@@ -247,7 +247,7 @@ export const translations = {
       emptyPassword: 'कृपया अपना पासवर्ड दर्ज करें।',
       invalidMobile: 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें।',
       generalError: 'प्रमाणीकरण विफल। कृपया अपने क्रेडेंशियल जांचें।',
-      demoAccessBtn: 'डेमो एक्सेस / त्वरित भरें',
+      demoAccessBtn: 'परीक्षण क्रेडेंशियल भरें',
     },
     register: {
       heading: 'किसान खाता बनाएं',
@@ -391,7 +391,7 @@ export const translations = {
       emptyPassword: 'कृपया आपला पासवर्ड टाका.',
       invalidMobile: 'कृपया १० अंकी वैध मोबाईल नंबर टाका.',
       generalError: 'प्रमाणीकरण अयशस्वी. कृपया आपले तपशील तपासा.',
-      demoAccessBtn: 'डेमो प्रवेश / त्वरित भरा',
+      demoAccessBtn: 'चाचणी क्रेडेंशियल भरा',
     },
     register: {
       heading: 'शेतकरी खाते तयार करा',

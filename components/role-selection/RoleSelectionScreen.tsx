@@ -39,6 +39,9 @@ export default function RoleSelectionScreen({
             <span style={{ fontWeight: 700, fontSize: '15px', color: '#ffffff', letterSpacing: '0.02em' }}>
               Kisan-Mitra
             </span>
+            <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.12)', padding: '2px 8px', borderRadius: '4px', color: '#d1fae5', marginLeft: '6px', fontWeight: 500 }}>
+              SIH26032 · Team Nexora
+            </span>
           </div>
         </div>
 

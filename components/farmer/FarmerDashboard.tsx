@@ -253,11 +253,6 @@ export default function FarmerDashboard({
         <div>
           <div className="eyebrow">
             FARMER PORTAL <span className="live-dot" /> Live queue tracking
-            {!state.bookingId && (
-              <span className="demo-pill-badge" style={{ marginLeft: '10px' }}>
-                <Info size={11} /> {i18n.sampleData}
-              </span>
-            )}
           </div>
           <h1>{i18n.greeting}</h1>
           <p className="subtle">
@@ -450,7 +445,7 @@ export default function FarmerDashboard({
             <span><Check size={14} /> #{state.ahead + 1} position in centre queue</span>
             <span><Check size={14} /> {state.ahead} farmers currently ahead</span>
             <span><Check size={14} /> Live ETA synchronised with Smart Queue Engine</span>
-            <span><Check size={14} /> SMS &amp; Socket.IO updates active</span>
+            <span><Check size={14} /> Socket.IO realtime updates active</span>
           </div>
         </section>
       </div>

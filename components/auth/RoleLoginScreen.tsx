@@ -128,11 +128,15 @@ export default function RoleLoginScreen({
     setRoleMismatch(false)
 
     try {
-      // Authenticate with POST /api/auth/login
+      // Authenticate with POST /api/auth/login with backend role validation
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanId, password }),
+        body: JSON.stringify({
+          phone: cleanId,
+          password,
+          expectedRole: roleConfig.expectedBackendRole,
+        }),
       })
 
       const data = await res.json()

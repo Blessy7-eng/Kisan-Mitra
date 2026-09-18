@@ -59,124 +59,187 @@ export async function createBooking(input: CreateBookingInput, currentUser: Auth
     throw error
   }
 
-  // Atomic check and update on slot capacity
-  const bookingResult = await prisma.$transaction(async (tx) => {
-    const slot = await tx.slot.findUnique({
-      where: { id: slotId },
-    })
-
-    if (!slot) {
-      const error: any = new Error('Slot not found')
-      error.statusCode = 404
-      throw error
-    }
-
-    if (slot.centreId !== centreId) {
-      const error: any = new Error('Slot does not belong to the specified centre')
-      error.statusCode = 400
-      throw error
-    }
-
-    // Rule 6: Validate slot capacity
-    if (slot.bookedCount >= slot.capacity || slot.status === 'FULL' || slot.status === 'CLOSED') {
-      const error: any = new Error('Selected slot is fully booked or closed')
-      error.statusCode = 409
-      throw error
-    }
-
-    // Check if farmer already has an active booking for this date/centre
-    const existingBooking = await tx.booking.findFirst({
-      where: {
-        farmerId: currentUser.id,
-        slotId: slot.id,
-        status: { in: ['PENDING', 'CONFIRMED', 'PROCESSING'] },
-      },
-    })
-
-    if (existingBooking) {
-      const error: any = new Error('You already have an active booking for this time slot')
-      error.statusCode = 409
-      throw error
-    }
-
-    // Calculate queue position and ETA using existing Smart Queue Engine
-    const waitingAhead = await tx.booking.count({
-      where: {
-        centreId,
-        slotId,
-        status: { in: ['PENDING', 'CONFIRMED', 'PROCESSING'] },
-      },
-    })
-
-    const centreState: CentreState = {
-      queue: centre.currentQueue + waitingAhead,
-      capacity: centre.dailyCapacity,
-      processingMinutes: centre.processingRate,
-      delayMinutes: 0,
-      bookings: centre._count.bookings,
-      counters: 4,
-    }
-
-    const etaMinutes = calculateETA(waitingAhead, centreState)
-    const baseMinutes = parseTimeToMinutes(slot.startTime)
-    const arrivalWindow = calculateArrivalWindow(baseMinutes, etaMinutes)
-    const [arrivalStart, arrivalEnd] = arrivalWindow.includes(' – ')
-      ? arrivalWindow.split(' – ')
-      : [slot.startTime, slot.endTime]
-
-    // Rule 4 & 5: Backend-generated authoritative token number
-    const totalBookings = await tx.booking.count()
-    const tokenNumber = `K-${100 + totalBookings + 1}`
-
-    const newBooking = await tx.booking.create({
-      data: {
-        farmerId: currentUser.id,
-        centreId,
-        slotId,
-        tokenNumber,
-        status: 'CONFIRMED',
-        etaMinutes,
-        arrivalStart: arrivalStart.trim(),
-        arrivalEnd: arrivalEnd.trim(),
-      },
-      include: {
-        centre: true,
-        slot: true,
-        farmer: {
-          select: { id: true, name: true, phone: true, language: true },
+  // Atomic check and update on slot capacity (fast DB operations only)
+  const transactionResult = await prisma.$transaction(
+    async (tx) => {
+      // 1. Validate the slot (fast indexed lookup)
+      const slot = await tx.slot.findUnique({
+        where: { id: slotId },
+        select: {
+          id: true,
+          centreId: true,
+          capacity: true,
+          bookedCount: true,
+          status: true,
+          startTime: true,
+          endTime: true,
         },
-      },
-    })
+      })
 
-    // Increment slot bookedCount and update status if full
-    const newBookedCount = slot.bookedCount + 1
-    await tx.slot.update({
-      where: { id: slotId },
-      data: {
-        bookedCount: newBookedCount,
-        status: newBookedCount >= slot.capacity ? 'FULL' : 'OPEN',
-      },
-    })
+      if (!slot) {
+        const error: any = new Error('This slot is no longer available. Please select another slot.')
+        error.statusCode = 404
+        throw error
+      }
 
-    // Update centre current queue
-    await tx.centre.update({
-      where: { id: centreId },
-      data: {
-        currentQueue: { increment: 1 },
-      },
-    })
+      if (slot.centreId !== centreId) {
+        const error: any = new Error('Slot does not belong to the specified centre')
+        error.statusCode = 400
+        throw error
+      }
 
-    return newBooking
+      // Check slot capacity and operational status
+      if (slot.bookedCount >= slot.capacity || slot.status === 'FULL' || slot.status === 'CLOSED') {
+        const error: any = new Error('This slot is no longer available. Please select another slot.')
+        error.statusCode = 409
+        throw error
+      }
+
+      // 2. Prevent duplicate active booking for this farmer on this slot
+      const existingBooking = await tx.booking.findFirst({
+        where: {
+          farmerId: currentUser.id,
+          slotId: slot.id,
+          status: { in: ['PENDING', 'CONFIRMED', 'PROCESSING'] },
+        },
+        select: { id: true },
+      })
+
+      if (existingBooking) {
+        const error: any = new Error('You already have an active booking.')
+        error.statusCode = 409
+        throw error
+      }
+
+      // 3. Atomically update slot capacity (locks the slot row to prevent concurrent overbooking)
+      const newBookedCount = slot.bookedCount + 1
+      if (newBookedCount > slot.capacity) {
+        const error: any = new Error('This slot is no longer available. Please select another slot.')
+        error.statusCode = 409
+        throw error
+      }
+
+      await tx.slot.update({
+        where: { id: slotId },
+        data: {
+          bookedCount: newBookedCount,
+          status: newBookedCount >= slot.capacity ? 'FULL' : 'OPEN',
+        },
+      })
+
+      // 4. Update centre current queue
+      await tx.centre.update({
+        where: { id: centreId },
+        data: {
+          currentQueue: { increment: 1 },
+        },
+      })
+
+      // 5. Generate authoritative token number (find next available sequential K-XXX token)
+      const existingTokens = await tx.booking.findMany({
+        select: { tokenNumber: true },
+      })
+      const usedSeqs = new Set(
+        existingTokens.map((b) => {
+          const match = b.tokenNumber.match(/K-(\d+)/)
+          return match ? parseInt(match[1], 10) : 0
+        })
+      )
+      let nextSeq = 101
+      while (usedSeqs.has(nextSeq)) {
+        nextSeq++
+      }
+      const tokenNumber = `K-${nextSeq}`
+
+      // 6. Create booking record (fast insert, no heavy relational includes inside tx)
+      const createdBooking = await tx.booking.create({
+        data: {
+          farmerId: currentUser.id,
+          centreId,
+          slotId,
+          tokenNumber,
+          status: 'CONFIRMED',
+          etaMinutes: 0,
+          arrivalStart: slot.startTime,
+          arrivalEnd: slot.endTime,
+        },
+      })
+
+      return { createdBooking, slot }
+    },
+    {
+      maxWait: 10000,
+      timeout: 10000,
+    }
+  )
+
+  const { createdBooking, slot } = transactionResult
+
+  // AFTER transaction commits:
+  // 1. Calculate queue position, waitingAhead, and ETA using existing Smart Queue Engine
+  const waitingAhead = await prisma.booking.count({
+    where: {
+      centreId,
+      slotId,
+      status: { in: ['PENDING', 'CONFIRMED', 'PROCESSING'] },
+      createdAt: { lt: createdBooking.createdAt },
+    },
   })
 
-  // Trigger recalculation and realtime broadcast for newly queued booking
+  const isDelayed = centre.status === 'DELAYED'
+  const centreState: CentreState = {
+    queue: (centre.currentQueue || 0) + 1,
+    capacity: centre.dailyCapacity,
+    processingMinutes: centre.processingRate,
+    delayMinutes: isDelayed ? 15 : 0,
+    bookings: (centre._count?.bookings || 0) + 1,
+    counters: 4,
+  }
+
+  const etaMinutes = calculateETA(waitingAhead, centreState)
+  const baseMinutes = parseTimeToMinutes(slot.startTime)
+  const arrivalWindowStr = calculateArrivalWindow(baseMinutes, etaMinutes)
+  const parts = arrivalWindowStr.split(' – ')
+  const arrivalStart = (parts[0] || slot.startTime).trim()
+  const arrivalEnd = (parts[1] || slot.endTime).trim()
+
+  // 2. Persist computed ETA and arrival window, and load full relational graph
+  const persistedBooking = await prisma.booking.update({
+    where: { id: createdBooking.id },
+    data: {
+      etaMinutes,
+      arrivalStart,
+      arrivalEnd,
+    },
+    include: {
+      centre: true,
+      slot: true,
+      farmer: {
+        select: { id: true, name: true, phone: true, language: true },
+      },
+    },
+  })
+
+  // 3. Trigger Smart Queue Engine recalculation and Socket.IO broadcast AFTER transaction commit
   try {
     await recalculateCentreQueueAndBroadcast(centreId)
   } catch (err) {
-    console.error('Failed to recalculate queue after booking creation:', err)
+    console.error('[Socket.IO Broadcast Warning]: Failed to recalculate queue after booking creation:', err)
   }
 
-  return bookingResult
+  // 4. Return final booking response with authoritative token and queue values
+  return {
+    ...persistedBooking,
+    bookingId: persistedBooking.id,
+    tokenNumber: persistedBooking.tokenNumber,
+    slot: persistedBooking.slot,
+    centre: persistedBooking.centre,
+    queuePosition: waitingAhead + 1,
+    farmersAhead: waitingAhead,
+    etaMinutes,
+    arrivalWindow: arrivalWindowStr,
+    status: persistedBooking.status,
+  }
 }
 
 export async function getBookingById(id: string, currentUser: AuthenticatedUser) {
@@ -217,15 +280,17 @@ export async function getBookingById(id: string, currentUser: AuthenticatedUser)
 }
 
 export async function getFarmerBookings(farmerId: string, currentUser: AuthenticatedUser) {
+  const targetId = farmerId === 'me' ? currentUser.id : farmerId
+
   // Security check: only the farmer themselves or officer/admin can access
-  if (currentUser.role === Role.FARMER && currentUser.id !== farmerId) {
+  if (currentUser.role === Role.FARMER && currentUser.id !== targetId) {
     const error: any = new Error('Forbidden: Cannot view bookings for another farmer')
     error.statusCode = 403
     throw error
   }
 
   return await prisma.booking.findMany({
-    where: { farmerId },
+    where: { farmerId: targetId },
     include: {
       centre: true,
       slot: true,

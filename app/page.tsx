@@ -384,10 +384,13 @@ export default function Page() {
     setState(initialDemoState)
     setShowLogoutModal(false)
 
-    // Clear client-side stored session tokens
+    // Clear client-side stored session tokens and profiles
     try {
       localStorage.removeItem('km_token')
       localStorage.removeItem('km_user')
+      localStorage.removeItem('km_auth_token')
+      localStorage.removeItem('km_user_role')
+      localStorage.removeItem('km_user_profile')
       sessionStorage.clear()
     } catch {
       // safe fallback
@@ -400,6 +403,17 @@ export default function Page() {
 
     setAuthStatus('ROLE_SELECTION')
   }
+
+  // Prevent back-button re-entry to protected routes when logged out
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!authToken) {
+        setAuthStatus('ROLE_SELECTION')
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [authToken])
 
   // Handle Confirmed Booking in Farmer Flow
   const handleBookingConfirmed = (booking: any) => {

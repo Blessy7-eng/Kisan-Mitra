@@ -682,7 +682,7 @@ button { cursor: pointer; }
 .role-footer-simple {
   text-align: center;
   padding-top: 24px;
-  color: #b8d0df;
+  color: #d1e2ee;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -1397,6 +1397,38 @@ button { cursor: pointer; }
   }
 }
 
+@media (max-width: 480px) {
+  .role-selection-wrapper {
+    padding: 16px 12px 36px;
+  }
+  .role-card {
+    padding: 20px 16px;
+  }
+  .role-header-box {
+    margin-bottom: 22px;
+  }
+  .role-header-box h1 {
+    font-size: 22px;
+  }
+  .role-tagline {
+    font-size: 13px;
+  }
+  .metrics-grid, .farmer-metrics { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric-card { padding: 13px 11px; }
+  .metric-card strong { font-size: 17px; }
+  .metric-top { font-size: 10px; }
+  .engine-diagram { transform: scale(.83); transform-origin: left center; width: 121%; }
+  .queue-rail-wrap { padding-left: 2px; padding-right: 2px; }
+  .queue-foot { font-size: 9px; }
+  .option-title { align-items: flex-start; gap: 8px; }
+  .option-stats span:first-child { width: 100%; }
+  .form-row { grid-template-columns: 1fr; }
+  .slot-card { flex-direction: column; }
+  .slot-right { text-align: left; }
+  .slot-right .button { margin-top: 5px; }
+  .redirect-row { gap: 14px; flex-direction: column; align-items: flex-start; }
+}
+
 @media (max-width: 380px) {
   .utility-right {
     flex-direction: column;
@@ -1413,20 +1445,20 @@ button { cursor: pointer; }
   .hero-language-select {
     width: 100%;
   }
-  .demo-tag {
-    font-size: 10px;
-    padding: 4px 8px;
-    text-align: center;
-    justify-content: center;
-  }
   .role-header-box h1 {
-    font-size: 21px;
+    font-size: 20px;
+  }
+  .role-card {
+    padding: 18px 14px;
+  }
+  .role-card h3 {
+    font-size: 18px;
+  }
+  .role-card-btn {
+    font-size: 13px;
+    padding: 10px 12px;
   }
 }
-
-@media (max-width: 1100px) { .sidebar { width: 215px; flex-basis: 215px; }.page-content { padding: 27px 22px; }.metrics-grid { grid-template-columns: repeat(3, 1fr); }.engine-panel { grid-template-columns: 1fr; }.engine-diagram { justify-content: flex-start; } }
-@media (max-width: 800px) { .quick-action-grid { grid-template-columns: repeat(2, 1fr); } .quick-actions-head { gap: 12px; flex-direction: column; } .sidebar { display: none; }.mobile-brand { display: flex; align-items: center; gap: 8px; color: #12304a; }.breadcrumb { display: none; }.topbar { padding: 0 17px; }.top-actions { gap: 12px; }.location, .user-menu > span:not(.avatar), .user-menu > svg { display: none; }.notification-popover { right: 17px; }.page-content { padding: 22px 15px 40px; }.welcome-row { gap: 18px; flex-direction: column; }.welcome-row h1 { font-size: 23px; }.welcome-row .button { width: 100%; }.metrics-grid, .farmer-metrics { grid-template-columns: repeat(2, 1fr); }.content-grid, .booking-layout, .officer-grid, .admin-bottom { grid-template-columns: 1fr; }.engine-diagram { gap: 8px; }.engine-inputs, .engine-outputs { width: 110px; }.engine-inputs span, .engine-outputs span { font-size: 9px; }.queue-panel, .panel { padding: 16px; }.timeline { overflow-x: auto; min-width: 650px; }.timeline-panel { overflow: hidden; }.eta-row { grid-template-columns: 1fr; }.table-head, .table-row { grid-template-columns: .8fr 1.3fr .7fr 1fr .6fr 20px; font-size: 10px; }.network-panel { overflow-x: auto; }.network-table { min-width: 670px; }.admin-bottom { gap: 14px; }.produce-grid { grid-template-columns: 1fr 1fr; }.slot-card { align-items: flex-start; }.option-stats { gap: 9px; flex-wrap: wrap; } }
-@media (max-width: 480px) { .metrics-grid, .farmer-metrics { grid-template-columns: 1fr 1fr; gap: 8px; }.metric-card { padding: 13px 11px; }.metric-card strong { font-size: 17px; }.metric-top { font-size: 10px; }.engine-diagram { transform: scale(.83); transform-origin: left center; width: 121%; }.queue-rail-wrap { padding-left: 2px; padding-right: 2px; }.queue-foot { font-size: 9px; }.option-title { align-items: flex-start; gap: 8px; }.option-stats span:first-child { width: 100%; }.form-row { grid-template-columns: 1fr; }.slot-card { flex-direction: column; }.slot-right { text-align: left; }.slot-right .button { margin-top: 5px; }.redirect-row { gap: 14px; flex-direction: column; align-items: flex-start; } }
 
 /* Socket.IO Connection State Badges */
 .socket-badge {

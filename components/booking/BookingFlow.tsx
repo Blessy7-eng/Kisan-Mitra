@@ -39,6 +39,7 @@ export default function BookingFlow({
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
+  const isSubmittingRef = React.useRef(false)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null)
 
@@ -98,6 +99,9 @@ export default function BookingFlow({
       return
     }
 
+    // Prevent double submission / simultaneous clicks
+    if (submitting || isSubmittingRef.current) return
+    isSubmittingRef.current = true
     setSubmitting(true)
     setBookingError(null)
 
@@ -119,15 +123,40 @@ export default function BookingFlow({
       const data = await res.json()
 
       if (!res.ok) {
+        // If response is a timeout, service unavailable, or conflict, verify if booking was actually created before erroring
+        if (res.status === 503 || res.status === 504 || res.status === 409) {
+          try {
+            const checkRes = await fetch('/api/farmers/me/bookings', {
+              headers: farmerToken ? { Authorization: `Bearer ${farmerToken}` } : {},
+            })
+            if (checkRes.ok) {
+              const checkData = await checkRes.json()
+              const existing = checkData.bookings?.find(
+                (b: any) =>
+                  b.slotId === selectedSlot.id &&
+                  ['CONFIRMED', 'PROCESSING', 'PENDING'].includes(b.status)
+              )
+              if (existing) {
+                setConfirmedBooking(existing)
+                onBookingSuccess(existing)
+                return
+              }
+            }
+          } catch {
+            // Proceed to standard error handling
+          }
+        }
+
         throw new Error(data.error || 'Failed to generate procurement booking')
       }
 
       setConfirmedBooking(data.booking)
       onBookingSuccess(data.booking)
     } catch (err: any) {
-      setBookingError(err.message || 'Failed to create booking.')
+      setBookingError(err.message || 'Booking is taking longer than expected. Please try again.')
     } finally {
       setSubmitting(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -404,7 +433,7 @@ export default function BookingFlow({
             >
               {submitting ? (
                 <>
-                  <RefreshCw size={14} className="animate-spin" /> Issuing Digital Token...
+                  <RefreshCw size={14} className="animate-spin" /> Generating Token...
                 </>
               ) : (
                 <>
