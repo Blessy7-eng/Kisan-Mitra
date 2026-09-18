@@ -11,8 +11,8 @@ import { calculateCentralQueueMetrics, calculateETA, calculateArrivalWindow } fr
 
 async function runSihArchitectureVerification() {
   console.log('======================================================================')
-  console.log('🌾 KISAN-MITRA SIH PPT TECHNOLOGY STACK & ARCHITECTURE VERIFICATION')
-  console.log('Problem Statement: SIH26032 | Team: Nexora')
+  console.log('🌾 KISAN-MITRA TECHNOLOGY STACK & ARCHITECTURE VERIFICATION')
+  console.log('Intelligent Procurement Queue & Slot Orchestration')
   console.log('======================================================================')
 
   const app = createExpressApp()

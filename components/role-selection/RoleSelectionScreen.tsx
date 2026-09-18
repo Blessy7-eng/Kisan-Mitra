@@ -40,7 +40,7 @@ export default function RoleSelectionScreen({
               Kisan-Mitra
             </span>
             <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.12)', padding: '2px 8px', borderRadius: '4px', color: '#d1fae5', marginLeft: '6px', fontWeight: 500 }}>
-              SIH26032 · Team Nexora
+              Digital Mandi Portal
             </span>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function RoleSelectionScreen({
 
         {/* Clean Public Service Footer */}
         <footer className="role-footer-simple">
-          <span>Kisan-Mitra · Smart India Hackathon SIH26032 · Team Nexora</span>
+          <span>Kisan-Mitra · Intelligent Procurement Queue & Slot Orchestration</span>
         </footer>
       </main>
 

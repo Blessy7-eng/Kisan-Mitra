@@ -484,6 +484,47 @@ export default function Page() {
     }))
   }
 
+  const handleCancelBooking = async () => {
+    if (state.bookingId) {
+      try {
+        await fetch(`/api/bookings/${state.bookingId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({ status: 'CANCELLED' }),
+        })
+      } catch (err) {
+        console.warn('Failed to send cancel request to server:', err)
+      }
+    }
+
+    setState((prev) => ({
+      ...prev,
+      booked: false,
+      token: '',
+      slot: '',
+      etaMinutes: 0,
+      ahead: 0,
+      bookingId: undefined,
+      notices: [
+        {
+          id: Date.now(),
+          text:
+            currentLanguage === 'mr'
+              ? 'स्लॉट बुकिंग यशस्वीरीत्या रद्द केले गेले.'
+              : currentLanguage === 'hi'
+              ? 'स्लॉट बुकिंग सफलतापूर्वक रद्द कर दी गई।'
+              : 'Slot booking has been successfully cancelled.',
+          audience: 'farmer' as const,
+          time: 'Just now',
+        },
+        ...prev.notices,
+      ].slice(0, 10),
+    }))
+  }
+
   // SCREEN 1: ROLE SELECTION ("Who are you?")
   if (authStatus === 'ROLE_SELECTION') {
     return (
@@ -550,6 +591,8 @@ export default function Page() {
             farmerToken={authToken}
             onBack={() => setPage('Dashboard')}
             onBookingSuccess={handleBookingConfirmed}
+            language={currentLanguage}
+            onLanguageChange={setCurrentLanguage}
           />
         )
       }
@@ -565,6 +608,7 @@ export default function Page() {
           lastEtaChangeNotice={lastEtaChangeNotice}
           language={currentLanguage}
           onLanguageChange={setCurrentLanguage}
+          onCancelBooking={handleCancelBooking}
         />
       )
     }
@@ -577,8 +621,16 @@ export default function Page() {
           state={state}
           onUpdateState={setState}
           onConditionUpdated={() => {
-            setLastEtaChangeNotice('Officer updated centre processing parameters. Recalculated ETAs across the queue.')
+            setLastEtaChangeNotice(
+              currentLanguage === 'mr'
+                ? 'अधिकाऱ्यांनी केंद्राचे मापदंड अद्ययावत केले. रांगेतील सर्व आगमन वेळांची फेरगणना झाली.'
+                : currentLanguage === 'hi'
+                ? 'अधिकारी ने केंद्र के पैरामीटर अपडेट किए। कतार में आगमन समय की पुनर्गणना हुई।'
+                : 'Officer updated centre processing parameters. Recalculated ETAs across the queue.'
+            )
           }}
+          language={currentLanguage}
+          onLanguageChange={setCurrentLanguage}
         />
       )
     }
@@ -589,6 +641,8 @@ export default function Page() {
         adminUser={authUser}
         adminToken={authToken}
         isSocketConnected={socketStatus === 'Live'}
+        language={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
       />
     )
   }
@@ -656,12 +710,16 @@ export default function Page() {
         {/* Authenticated User & Role Indicator Badge */}
         <div className="sidebar-user-section">
           <span className={`sidebar-user-role-badge ${activeRole}`}>
-            {activeRole === 'farmer' ? 'FARMER' : activeRole === 'officer' ? 'PROCUREMENT OFFICER' : 'ADMINISTRATOR'}
+            {activeRole === 'farmer'
+              ? (currentLanguage === 'mr' ? 'शेतकरी' : currentLanguage === 'hi' ? 'किसान' : 'FARMER')
+              : activeRole === 'officer'
+              ? (currentLanguage === 'mr' ? 'खरेदी अधिकारी' : currentLanguage === 'hi' ? 'खरीद अधिकारी' : 'PROCUREMENT OFFICER')
+              : (currentLanguage === 'mr' ? 'प्रशासक' : currentLanguage === 'hi' ? 'प्रशासक' : 'ADMINISTRATOR')}
           </span>
           <b className="sidebar-user-name">{authUser?.name || 'Authenticated User'}</b>
           <span className="sidebar-user-detail">
             {activeRole === 'officer'
-              ? 'Nashik Procurement Centre'
+              ? (currentLanguage === 'mr' ? 'नाशिक खरेदी केंद्र' : currentLanguage === 'hi' ? 'नासिक खरीद केंद्र' : 'Nashik Procurement Centre')
               : maskPhoneNumber(authUser?.phone || '9876543210')}
           </span>
 
@@ -672,46 +730,72 @@ export default function Page() {
             className="sidebar-logout-btn"
             onClick={handlePromptLogout}
           >
-            <LogOut size={12} /> Log out / Change account
+            <LogOut size={12} /> {t.logout.buttonText}
           </button>
         </div>
 
         <nav>
-          {navItems[activeRole].map((label) => (
-            <button
-              key={label}
-              className={title === label ? 'active' : ''}
-              onClick={() => {
-                setPage(label)
-                setShowNotices(label === 'Notifications')
-                setMobileMenuOpen(false)
-              }}
-            >
-              {label === 'Dashboard' || label === 'Control Room' || label === 'Network Overview' ? (
-                <LayoutDashboard size={17} />
-              ) : label.toLowerCase().includes('queue') ? (
-                <Users size={17} />
-              ) : label.toLowerCase().includes('status') || label.toLowerCase().includes('fleet') ? (
-                <Activity size={17} />
-              ) : label.toLowerCase().includes('condition') || label.toLowerCase().includes('inspector') || label.toLowerCase().includes('engine') ? (
-                <Gauge size={17} />
-              ) : label === 'Notifications' ? (
-                <Bell size={17} />
-              ) : (
-                <UserRound size={17} />
-              )}
-              {label}
-              {label === 'Notifications' && <i className="nav-badge">{relevantNotices.length}</i>}
-            </button>
-          ))}
+          {navItems[activeRole].map((label) => {
+            let translatedLabel = label
+            if (activeRole === 'farmer') {
+              if (label === 'Dashboard') translatedLabel = t.nav.farmer.dashboard
+              else if (label === 'Book a slot') translatedLabel = t.nav.farmer.bookSlot
+              else if (label === 'My token & queue') translatedLabel = t.nav.farmer.myToken
+              else if (label === 'Procurement status') translatedLabel = t.nav.farmer.procStatus
+              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+            } else if (activeRole === 'officer') {
+              if (label === 'Control Room') translatedLabel = t.nav.officer.controlRoom
+              else if (label === 'Live Queue') translatedLabel = t.nav.officer.liveQueue
+              else if (label === 'Centre Conditions') translatedLabel = t.nav.officer.centreConditions
+              else if (label === 'Smart Queue Engine') translatedLabel = t.nav.officer.smartQueueEngine
+              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+            } else {
+              if (label === 'Network Overview') translatedLabel = t.nav.admin.networkOverview
+              else if (label === 'Centre Load & Fleet') translatedLabel = t.nav.admin.centreLoadFleet
+              else if (label === 'Centre Inspector') translatedLabel = t.nav.admin.centreInspector
+              else if (label === 'System Health') translatedLabel = t.nav.admin.systemHealth
+              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+            }
+
+            return (
+              <button
+                key={label}
+                className={title === label ? 'active' : ''}
+                onClick={() => {
+                  setPage(label)
+                  setShowNotices(label === 'Notifications')
+                  setMobileMenuOpen(false)
+                }}
+              >
+                {label === 'Dashboard' || label === 'Control Room' || label === 'Network Overview' ? (
+                  <LayoutDashboard size={17} />
+                ) : label.toLowerCase().includes('queue') ? (
+                  <Users size={17} />
+                ) : label.toLowerCase().includes('status') || label.toLowerCase().includes('fleet') ? (
+                  <Activity size={17} />
+                ) : label.toLowerCase().includes('condition') || label.toLowerCase().includes('inspector') || label.toLowerCase().includes('engine') ? (
+                  <Gauge size={17} />
+                ) : label === 'Notifications' ? (
+                  <Bell size={17} />
+                ) : (
+                  <UserRound size={17} />
+                )}
+                {translatedLabel}
+                {label === 'Notifications' && <i className="nav-badge">{relevantNotices.length}</i>}
+              </button>
+            )
+          })}
         </nav>
 
         <div className="sidebar-bottom">
           <button onClick={() => { setPage('Dashboard'); setShowNotices(false); }}>
             <RefreshCw size={17} />
-            <span>Sync Queue State</span>
+            <span>{currentLanguage === 'mr' ? 'रांग समक्रमित करा' : currentLanguage === 'hi' ? 'कतार सिंक करें' : 'Sync Queue State'}</span>
           </button>
-          <div className="version">SIH26032 · Nexora</div>
+          <div className="version">Kisan-Mitra Portal v2.1</div>
         </div>
       </aside>
 
@@ -829,12 +913,16 @@ export default function Page() {
                 <LogOut size={20} />
               </div>
               <div>
-                <h3 id="logout-dialog-title">Confirm Logout</h3>
-                <p>Are you sure you want to log out?</p>
+                <h3 id="logout-dialog-title">{t.logout.confirmTitle}</h3>
+                <p>{t.logout.confirmMessage}</p>
               </div>
             </div>
             <p className="modal-body-text">
-              Your active session and realtime queue notifications will be ended. You will be redirected to the role selection portal.
+              {currentLanguage === 'mr'
+                ? 'तुमचे सक्रिय सत्र आणि थेट रांग सूचना समाप्त होतील. तुम्हाला भूमिका निवड पोर्टलवर पुनर्निर्देशित केले जाईल.'
+                : currentLanguage === 'hi'
+                ? 'आपका सक्रिय सत्र और लाइव कतार सूचनाएं समाप्त हो जाएंगी। आपको भूमिका चयन पोर्टल पर पुनर्निर्देशित किया जाएगा।'
+                : 'Your active session and realtime queue notifications will be ended. You will be redirected to the role selection portal.'}
             </p>
             <div className="modal-footer">
               <button
@@ -842,7 +930,7 @@ export default function Page() {
                 className="button outline"
                 onClick={() => setShowLogoutModal(false)}
               >
-                Cancel
+                {t.logout.cancelBtn}
               </button>
               <button
                 type="button"
@@ -850,7 +938,7 @@ export default function Page() {
                 onClick={handleConfirmLogout}
                 id="confirm-logout-btn"
               >
-                Log out
+                {t.logout.logoutBtn}
               </button>
             </div>
           </div>

@@ -12,18 +12,24 @@ import {
   Wheat,
   AlertTriangle,
   RefreshCw,
+  Globe,
 } from 'lucide-react'
+import { translations, Language } from '@/lib/i18n'
 
 interface BookingFlowProps {
   farmerToken: string | null
   onBack: () => void
   onBookingSuccess: (booking: any) => void
+  language?: Language
+  onLanguageChange?: (lang: Language) => void
 }
 
 export default function BookingFlow({
   farmerToken,
   onBack,
   onBookingSuccess,
+  language = 'en',
+  onLanguageChange,
 }: BookingFlowProps) {
   const [step, setStep] = useState<number>(1)
   const [centres, setCentres] = useState<any[]>([])
@@ -42,6 +48,9 @@ export default function BookingFlow({
   const isSubmittingRef = React.useRef(false)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null)
+
+  const t = translations[language] || translations.en
+  const bf = t.bookingFlow
 
   // 1. Fetch real centres
   useEffect(() => {
@@ -90,12 +99,18 @@ export default function BookingFlow({
       }
     }
     loadSlots()
-  }, [selectedCentre?.id])
+  }, [selectedCentre?.id, farmerToken])
 
   // 3. Submit booking to POST /api/bookings
   const handleConfirmBooking = async () => {
     if (!selectedCentre || !selectedSlot) {
-      setBookingError('Please select both a procurement centre and an arrival slot.')
+      setBookingError(
+        language === 'mr'
+          ? 'कृपया खरेदी केंद्र आणि वेळ स्लॉट दोन्ही निवडा.'
+          : language === 'hi'
+          ? 'कृपया खरीद केंद्र और समय स्लॉट दोनों चुनें।'
+          : 'Please select both a procurement centre and an arrival slot.'
+      )
       return
     }
 
@@ -123,100 +138,95 @@ export default function BookingFlow({
       const data = await res.json()
 
       if (!res.ok) {
-        // If response is a timeout, service unavailable, or conflict, verify if booking was actually created before erroring
-        if (res.status === 503 || res.status === 504 || res.status === 409) {
-          try {
-            const checkRes = await fetch('/api/farmers/me/bookings', {
-              headers: farmerToken ? { Authorization: `Bearer ${farmerToken}` } : {},
-            })
-            if (checkRes.ok) {
-              const checkData = await checkRes.json()
-              const existing = checkData.bookings?.find(
-                (b: any) =>
-                  b.slotId === selectedSlot.id &&
-                  ['CONFIRMED', 'PROCESSING', 'PENDING'].includes(b.status)
-              )
-              if (existing) {
-                setConfirmedBooking(existing)
-                onBookingSuccess(existing)
-                return
-              }
-            }
-          } catch {
-            // Proceed to standard error handling
-          }
-        }
-
-        throw new Error(data.error || 'Failed to generate procurement booking')
+        throw new Error(data.error || 'Unable to complete slot booking')
       }
 
       setConfirmedBooking(data.booking)
       onBookingSuccess(data.booking)
     } catch (err: any) {
-      setBookingError(err.message || 'Booking is taking longer than expected. Please try again.')
+      setBookingError(err.message || 'Error communicating with booking server')
+      isSubmittingRef.current = false
     } finally {
       setSubmitting(false)
-      isSubmittingRef.current = false
     }
   }
 
-  // Confirmation View
+  const produceList = [
+    {
+      id: 'Wheat',
+      name: language === 'mr' ? 'गहू' : language === 'hi' ? 'गेहूं' : 'Wheat',
+      variety: language === 'mr' ? 'शरबती / लोकवान' : language === 'hi' ? 'शरबती / लोकवान' : 'Sharbati / Lokwan',
+      msp: '₹2,275 / quintal',
+    },
+    {
+      id: 'Onion',
+      name: language === 'mr' ? 'कांदा' : language === 'hi' ? 'प्याज' : 'Onion',
+      variety: language === 'mr' ? 'नाशिक लाल' : language === 'hi' ? 'नासिक लाल' : 'Nashik Red',
+      msp: language === 'mr' ? 'सरकारी बफर खरेदी' : language === 'hi' ? 'सरकारी बफर खरीद' : 'Government Buffer Proc.',
+    },
+    {
+      id: 'Soybean',
+      name: language === 'mr' ? 'सोयाबीन' : language === 'hi' ? 'सोयाबीन' : 'Soybean',
+      variety: 'JS-335 / Yellow',
+      msp: '₹4,892 / quintal',
+    },
+    {
+      id: 'Cotton',
+      name: language === 'mr' ? 'कापूस' : language === 'hi' ? 'कपास' : 'Cotton',
+      variety: language === 'mr' ? 'मध्यम धागा' : language === 'hi' ? 'मध्यम रेशा' : 'Medium Staple',
+      msp: '₹7,121 / quintal',
+    },
+  ]
+
+  // If booking succeeded, show confirmation receipt card
   if (confirmedBooking) {
     return (
-      <div className="booking-modal-card">
-        <div style={{ textAlign: 'center', padding: '10px 0 20px' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              background: '#e6f3f1',
-              color: '#2f6f73',
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 16px',
-            }}
-          >
-            <Check size={28} />
-          </div>
-          <div className="eyebrow teal" style={{ justifyContent: 'center' }}>
-            BOOKING CONFIRMED · AUTHORITATIVE TOKEN ISSUED
-          </div>
-          <h2 style={{ fontSize: '24px', color: '#12304a', margin: '6px 0 10px', fontWeight: 800 }}>
-            Procurement Token Generated
-          </h2>
-          <p style={{ color: '#62737e', fontSize: '13px', margin: 0 }}>
-            Your slot has been registered in the Smart Queue Engine.
-          </p>
+      <div className="panel" style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center', padding: '32px 24px' }}>
+        <div style={{ display: 'inline-flex', padding: '14px', background: '#eef8f6', borderRadius: '50%', color: '#2f6f73', marginBottom: '14px' }}>
+          <Check size={36} />
         </div>
+        <div className="eyebrow teal" style={{ justifyContent: 'center' }}>
+          {language === 'mr' ? 'शासकीय डिजिटल टोकन जारी' : language === 'hi' ? 'शासकीय डिजिटल टोकन जारी' : 'AUTHORITATIVE DIGITAL TOKEN'}
+        </div>
+        <h2 style={{ fontSize: '24px', color: '#12304a', margin: '4px 0 10px' }}>
+          {bf.successTitle}
+        </h2>
+        <p style={{ color: '#5b6e79', fontSize: '13px', margin: '0 auto 24px', maxWidth: '440px' }}>
+          {bf.successDesc}
+        </p>
 
-        <div style={{ background: '#f8fafb', border: '1px solid #dce4e8', borderRadius: '8px', padding: '18px 20px', marginBottom: '22px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px dashed #ccd8de', paddingBottom: '12px' }}>
-            <span style={{ fontSize: '12px', color: '#687882' }}>Digital Token Number</span>
-            <b style={{ fontSize: '20px', color: '#12304a' }}>{confirmedBooking.tokenNumber}</b>
+        <div style={{ background: '#f5fbfb', border: '1.5px dashed #2f6f73', borderRadius: '10px', padding: '22px', marginBottom: '24px', textAlign: 'left' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #d5e5e4', paddingBottom: '12px', marginBottom: '14px' }}>
+            <span style={{ fontSize: '11px', color: '#5a717d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {language === 'mr' ? 'टोकन क्रमांक' : language === 'hi' ? 'टोकन संख्या' : 'Token Number'}
+            </span>
+            <b style={{ fontSize: '26px', color: '#12304a', fontFamily: 'monospace' }}>
+              {confirmedBooking.tokenNumber}
+            </b>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '12px' }}>
             <div>
-              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>Procurement Centre</span>
+              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>{language === 'mr' ? 'खरेदी केंद्र' : language === 'hi' ? 'खरीद केंद्र' : 'Procurement Centre'}</span>
               <strong style={{ color: '#12304a' }}>{confirmedBooking.centre?.name || selectedCentre?.name}</strong>
             </div>
             <div>
-              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>Arrival Window</span>
+              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>{language === 'mr' ? 'आगमन वेळ' : language === 'hi' ? 'आगमन विंडो' : 'Arrival Window'}</span>
               <strong style={{ color: '#12304a' }}>{confirmedBooking.arrivalWindow || `${selectedSlot.startTime} – ${selectedSlot.endTime}`}</strong>
             </div>
             <div>
-              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>Produce Category</span>
+              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>{language === 'mr' ? 'शेतमाल' : language === 'hi' ? 'फसल' : 'Produce Category'}</span>
               <strong style={{ color: '#12304a' }}>{confirmedBooking.produceType || selectedProduce}</strong>
             </div>
             <div>
-              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>Initial Estimated Wait</span>
-              <strong style={{ color: '#2f6f73' }}>{confirmedBooking.etaMinutes ?? 20} minutes</strong>
+              <span style={{ display: 'block', color: '#7a8c96', fontSize: '10px' }}>{language === 'mr' ? 'अंदाजे प्रतीक्षा वेळ' : language === 'hi' ? 'प्रारंभिक अनुमानित प्रतीक्षा' : 'Initial Estimated Wait'}</span>
+              <strong style={{ color: '#2f6f73' }}>{confirmedBooking.etaMinutes ?? 20} {language === 'mr' ? 'मिनिटे' : language === 'hi' ? 'मिनट' : 'minutes'}</strong>
             </div>
           </div>
         </div>
 
         <button className="button primary full" onClick={onBack}>
-          Return to My Queue <ArrowRight size={15} />
+          {bf.goToDashboard} <ArrowRight size={15} />
         </button>
       </div>
     )
@@ -232,21 +242,33 @@ export default function BookingFlow({
             style={{ marginBottom: '8px' }}
             onClick={step > 1 ? () => setStep(step - 1) : onBack}
           >
-            <ArrowLeft size={13} /> {step > 1 ? 'Back to previous step' : 'Cancel booking'}
+            <ArrowLeft size={13} /> {step > 1 ? (language === 'mr' ? 'मागील टप्प्यावर जा' : language === 'hi' ? 'पिछले चरण पर जाएं' : 'Back to previous step') : (language === 'mr' ? 'रद्द करा' : language === 'hi' ? 'रद्द करें' : 'Cancel booking')}
           </button>
-          <div className="eyebrow">STEP {step} OF 3</div>
+          <div className="eyebrow">
+            {language === 'mr' ? `टप्पा ${step} / ३` : language === 'hi' ? `चरण ${step} / ३` : `STEP ${step} OF 3`}
+          </div>
           <h2 style={{ fontSize: '20px', color: '#12304a', margin: 0 }}>
-            {step === 1 && 'Select Procurement Centre'}
-            {step === 2 && 'Specify Agricultural Produce'}
-            {step === 3 && 'Choose Arrival Slot & Confirm Token'}
+            {step === 1 && bf.step1}
+            {step === 2 && bf.step2}
+            {step === 3 && bf.step3}
           </h2>
         </div>
+        {onLanguageChange && (
+          <label className="language-select">
+            <Globe size={13} />
+            <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
+              <option value="en">English</option>
+              <option value="hi">हिन्दी</option>
+              <option value="mr">मराठी</option>
+            </select>
+          </label>
+        )}
       </div>
 
       {bookingError && (
         <div className="inline-alert warning" style={{ marginBottom: '16px' }}>
           <AlertTriangle size={17} />
-          <div><b>Booking Error:</b> <span>{bookingError}</span></div>
+          <div><b>{language === 'mr' ? 'त्रुटी:' : language === 'hi' ? 'त्रुटि:' : 'Booking Error:'}</b> <span>{bookingError}</span></div>
         </div>
       )}
 
@@ -254,11 +276,17 @@ export default function BookingFlow({
       {step === 1 && (
         <div>
           <p style={{ fontSize: '12px', color: '#687882', marginBottom: '14px' }}>
-            Choose a nearby procurement centre. Centres with lower load will have shorter waiting times.
+            {language === 'mr'
+              ? 'जवळचे खरेदी केंद्र निवडा. कमी भार असलेल्या केंद्रांवर प्रतीक्षा वेळ कमी असेल.'
+              : language === 'hi'
+              ? 'निकटवर्ती खरीद केंद्र चुनें। कम लोड वाले केंद्रों पर प्रतीक्षा समय कम होगा।'
+              : 'Choose a nearby procurement centre. Centres with lower load will have shorter waiting times.'}
           </p>
 
           {loadingCentres ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#62737e' }}>Loading centres...</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#62737e' }}>
+              {language === 'mr' ? 'केंद्रे लोड होत आहेत...' : language === 'hi' ? 'केंद्र लोड हो रहे हैं...' : 'Loading centres...'}
+            </div>
           ) : (
             <div style={{ display: 'grid', gap: '10px', marginBottom: '22px' }}>
               {centres.map((c) => {
@@ -286,14 +314,14 @@ export default function BookingFlow({
                         <MapPin size={12} style={{ display: 'inline', marginRight: '3px' }} /> {c.location}
                       </span>
                       <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '11px', color: '#4b5e6b' }}>
-                        <span>Queue: <strong>{c.currentQueue}</strong></span>
-                        <span>Rate: <strong>{c.processingRate}m</strong></span>
-                        <span>Capacity: <strong>{c.dailyCapacity}</strong></span>
+                        <span>{language === 'mr' ? 'रांग' : language === 'hi' ? 'कतार' : 'Queue'}: <strong>{c.currentQueue}</strong></span>
+                        <span>{language === 'mr' ? 'गती' : language === 'hi' ? 'दर' : 'Rate'}: <strong>{c.processingRate}m</strong></span>
+                        <span>{language === 'mr' ? 'क्षमता' : language === 'hi' ? 'क्षमता' : 'Capacity'}: <strong>{c.dailyCapacity}</strong></span>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span className={`status-pill ${isHigh ? 'warning' : 'success'}`}>
-                        {c.calculatedLoadPercent}% load
+                        {c.calculatedLoadPercent}% {language === 'mr' ? 'भार' : language === 'hi' ? 'लोड' : 'load'}
                       </span>
                     </div>
                   </div>
@@ -307,7 +335,7 @@ export default function BookingFlow({
             disabled={!selectedCentre}
             onClick={() => setStep(2)}
           >
-            Continue to Produce Selection <ArrowRight size={15} />
+            {language === 'mr' ? 'शेतमाल निवडीसाठी पुढे जा' : language === 'hi' ? 'फसल चयन के लिए आगे बढ़ें' : 'Continue to Produce Selection'} <ArrowRight size={15} />
           </button>
         </div>
       )}
@@ -316,22 +344,21 @@ export default function BookingFlow({
       {step === 2 && (
         <div>
           <p style={{ fontSize: '12px', color: '#687882', marginBottom: '14px' }}>
-            Select the crop you are bringing for government minimum support price (MSP) procurement.
+            {language === 'mr'
+              ? 'शासकीय हमीभाव (MSP) खरेदीसाठी आणत असलेला शेतमाल निवडा.'
+              : language === 'hi'
+              ? 'सरकारी न्यूनतम समर्थन मूल्य (MSP) खरीद के लिए लाई जा रही फसल का चयन करें।'
+              : 'Select the crop you are bringing for government minimum support price (MSP) procurement.'}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '20px' }}>
-            {[
-              { name: 'Wheat', variety: 'Sharbati / Lokwan', msp: '₹2,275 / quintal' },
-              { name: 'Onion', variety: 'Nashik Red', msp: 'Government Buffer Proc.' },
-              { name: 'Soybean', variety: 'JS-335 / Yellow', msp: '₹4,892 / quintal' },
-              { name: 'Cotton', variety: 'Medium Staple', msp: '₹7,121 / quintal' },
-            ].map((p) => {
-              const isSelected = selectedProduce === p.name
+            {produceList.map((p) => {
+              const isSelected = selectedProduce === p.id
               return (
                 <button
-                  key={p.name}
+                  key={p.id}
                   type="button"
-                  onClick={() => setSelectedProduce(p.name)}
+                  onClick={() => setSelectedProduce(p.id)}
                   style={{
                     border: `1.5px solid ${isSelected ? '#2f6f73' : '#dce4e8'}`,
                     background: isSelected ? '#f5fbfb' : '#fff',
@@ -350,7 +377,7 @@ export default function BookingFlow({
           </div>
 
           <div className="login-field" style={{ marginBottom: '22px' }}>
-            <label htmlFor="procure-qty">Estimated Quantity (Kilograms):</label>
+            <label htmlFor="procure-qty">{bf.estimatedQty}</label>
             <input
               id="procure-qty"
               type="number"
@@ -363,10 +390,10 @@ export default function BookingFlow({
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="button outline" onClick={() => setStep(1)}>
-              Back
+              {bf.backBtn}
             </button>
             <button className="button primary full" onClick={() => setStep(3)}>
-              Continue to Slot Selection <ArrowRight size={15} />
+              {bf.continueBtn} <ArrowRight size={15} />
             </button>
           </div>
         </div>
@@ -376,11 +403,14 @@ export default function BookingFlow({
       {step === 3 && (
         <div>
           <p style={{ fontSize: '12px', color: '#687882', marginBottom: '14px' }}>
-            Select an available arrival slot at <strong>{selectedCentre?.name}</strong>.
+            {language === 'mr' ? 'येथे उपलब्ध आगमन स्लॉट निवडा: ' : language === 'hi' ? 'यहाँ उपलब्ध आगमन स्लॉट चुनें: ' : 'Select an available arrival slot at '}
+            <strong>{selectedCentre?.name}</strong>.
           </p>
 
           {loadingSlots ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#62737e' }}>Loading available slots...</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#62737e' }}>
+              {language === 'mr' ? 'उपलब्ध स्लॉट लोड होत आहेत...' : language === 'hi' ? 'उपलब्ध स्लॉट लोड हो रहे हैं...' : 'Loading available slots...'}
+            </div>
           ) : (
             <div style={{ display: 'grid', gap: '8px', marginBottom: '22px', maxHeight: '240px', overflowY: 'auto' }}>
               {slots.map((s) => {
@@ -409,11 +439,11 @@ export default function BookingFlow({
                     <div>
                       <b style={{ fontSize: '13px', color: '#12304a' }}>{s.startTime} – {s.endTime}</b>
                       <span style={{ display: 'block', fontSize: '10px', color: '#7a8c96', marginTop: '2px' }}>
-                        Capacity: {s.bookedCount || 0} / {s.capacity} registered
+                        {language === 'mr' ? 'नोंदणी क्षमता' : language === 'hi' ? 'पंजीकरण क्षमता' : 'Capacity'}: {s.bookedCount || 0} / {s.capacity}
                       </span>
                     </div>
                     <span className={`status-pill ${isFull ? 'danger' : 'success'}`}>
-                      {isFull ? 'Full' : `${s.availableCapacity ?? (s.capacity - s.bookedCount)} open`}
+                      {isFull ? (language === 'mr' ? 'पूर्ण' : language === 'hi' ? 'फुल' : 'Full') : `${s.availableCapacity ?? (s.capacity - s.bookedCount)} ${language === 'mr' ? 'उपलब्ध' : language === 'hi' ? 'उपलब्ध' : 'open'}`}
                     </span>
                   </button>
                 )
@@ -423,7 +453,7 @@ export default function BookingFlow({
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="button outline" onClick={() => setStep(2)}>
-              Back
+              {bf.backBtn}
             </button>
             <button
               id="generate-digital-token-btn"
@@ -433,11 +463,11 @@ export default function BookingFlow({
             >
               {submitting ? (
                 <>
-                  <RefreshCw size={14} className="animate-spin" /> Generating Token...
+                  <RefreshCw size={14} className="animate-spin" /> {language === 'mr' ? 'टोकन तयार होत आहे...' : language === 'hi' ? 'टोकन जनरेट हो रहा है...' : 'Generating Token...'}
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={14} /> Generate Digital Token
+                  <ShieldCheck size={14} /> {bf.confirmBookingBtn}
                 </>
               )}
             </button>

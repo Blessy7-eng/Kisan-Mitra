@@ -17,18 +17,24 @@ import {
   XCircle,
   ChevronRight,
   MapPin,
+  Globe,
 } from 'lucide-react'
+import { translations, Language } from '@/lib/i18n'
 
 interface AdminDashboardProps {
   adminUser: any
   adminToken: string | null
   isSocketConnected: boolean
+  language?: Language
+  onLanguageChange?: (lang: Language) => void
 }
 
 export default function AdminDashboard({
   adminUser,
   adminToken,
   isSocketConnected,
+  language = 'en',
+  onLanguageChange,
 }: AdminDashboardProps) {
   const [centres, setCentres] = useState<any[]>([])
   const [loadingCentres, setLoadingCentres] = useState(false)
@@ -42,6 +48,9 @@ export default function AdminDashboard({
   const [selectedCentre, setSelectedCentre] = useState<any | null>(null)
   const [centreSlots, setCentreSlots] = useState<any[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+
+  const t = translations[language] || translations.en
+  const a = t.adminDashboard
 
   // Fetch real centres from GET /api/centres
   async function fetchCentres() {
@@ -71,11 +80,30 @@ export default function AdminDashboard({
     try {
       const res = await fetch('/api/health')
       const data = await res.json()
-      setHealthData(data)
+      if (res.ok) {
+        setHealthData(data)
+      }
     } catch (err) {
-      setHealthData({ status: 'unhealthy', database: 'disconnected' })
+      console.warn('Health check unreachable:', err)
     } finally {
       setLoadingHealth(false)
+    }
+  }
+
+  // Load specific slots when inspector selects a centre
+  async function fetchCentreSlots(centreId: string) {
+    if (!centreId) return
+    setLoadingSlots(true)
+    try {
+      const res = await fetch(`/api/centres/${centreId}/slots`)
+      const data = await res.json()
+      if (res.ok && Array.isArray(data.slots)) {
+        setCentreSlots(data.slots)
+      }
+    } catch (err) {
+      console.warn('Unable to load slots for centre:', err)
+    } finally {
+      setLoadingSlots(false)
     }
   }
 
@@ -84,56 +112,48 @@ export default function AdminDashboard({
     fetchHealth()
   }, [])
 
-  // Fetch slots when selectedCentre changes
   useEffect(() => {
-    if (!selectedCentre?.id) return
-    let active = true
-    async function fetchSlots() {
-      setLoadingSlots(true)
-      try {
-        const res = await fetch(`/api/centres/${selectedCentre.id}/slots`, {
-          headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
-        })
-        const data = await res.json()
-        if (active && res.ok && Array.isArray(data.slots)) {
-          setCentreSlots(data.slots)
-        }
-      } catch (err) {
-        console.warn('Error loading slots for centre inspector:', err)
-      } finally {
-        if (active) setLoadingSlots(false)
-      }
+    if (selectedCentre?.id) {
+      fetchCentreSlots(selectedCentre.id)
     }
-    fetchSlots()
-    return () => { active = false }
   }, [selectedCentre?.id])
 
-  // Derive real network metrics from API data
-  const activeCentresCount = centres.filter((c) => c.status === 'ACTIVE' || c.status === 'HIGH_LOAD').length
-  const totalQueue = centres.reduce((sum, c) => sum + (c.currentQueue || 0), 0)
+  // Calculated operational aggregates across all registered centres
+  const totalQueue = centres.reduce((acc, c) => acc + (c.currentQueue || 0), 0)
+  const totalCapacity = centres.reduce((acc, c) => acc + (c.dailyCapacity || 0), 0)
+  const activeCentresCount = centres.filter((c) => c.status !== 'INACTIVE').length
   const highLoadCentresCount = centres.filter((c) => (c.calculatedLoadPercent || 0) >= 80).length
-  const totalCapacity = centres.reduce((sum, c) => sum + (c.dailyCapacity || 0), 0)
 
   return (
     <div className="admin-dashboard-container">
-      {/* Admin Header */}
+      {/* Top Welcome Row */}
       <div className="welcome-row">
         <div>
           <div className="eyebrow">
-            ADMIN CONTROL CENTRE <span className="live-dot" /> Procurement Network Monitor
+            {language === 'mr' ? 'राज्य व जिल्हा प्रशासन नियंत्रण' : language === 'hi' ? 'राज्य एवं जिला प्रशासन नियंत्रण' : 'STATEWIDE APMC NETWORK'}{' '}
+            <span className="live-dot" /> {language === 'mr' ? 'थेट प्रणाली' : language === 'hi' ? 'लाइव सिस्टम' : 'Authoritative command'}
           </div>
-          <h1 style={{ color: '#12304a', fontSize: '26px' }}>
-            Procurement Network Overview
-          </h1>
+          <h1>{a.title}</h1>
           <p className="subtle">
-            Administrator: <strong>{adminUser?.name || 'Priya Sharma'}</strong> · Real-time network telemetry across Aiven MySQL
+            {adminUser?.name ? `${adminUser.name} · ` : ''}
+            {language === 'mr' ? 'राज्यस्तरीय खरेदी नेटवर्क नियंत्रण' : language === 'hi' ? 'राज्यस्तरीय खरीद नेटवर्क नियंत्रण' : 'Statewide procurement monitoring and capacity management'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onLanguageChange && (
+            <label className="language-select">
+              <Globe size={13} />
+              <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="mr">मराठी</option>
+              </select>
+            </label>
+          )}
           <button className="button outline small" onClick={() => { fetchCentres(); fetchHealth(); }} disabled={loadingCentres}>
-            <RefreshCw size={13} className={loadingCentres ? 'animate-spin' : ''} /> Refresh Network
+            <RefreshCw size={13} className={loadingCentres ? 'animate-spin' : ''} /> {language === 'mr' ? 'नेटवर्क रीफ्रेश करा' : language === 'hi' ? 'नेटवर्क रीफ्रेश करें' : 'Refresh Network'}
           </button>
-          <span className="status-pill success">NETWORK ACTIVE</span>
+          <span className="status-pill success">{language === 'mr' ? 'नेटवर्क सक्रिय' : language === 'hi' ? 'नेटवर्क सक्रिय' : 'NETWORK ACTIVE'}</span>
         </div>
       </div>
 
@@ -147,37 +167,37 @@ export default function AdminDashboard({
       {/* Admin KPIs (Derived from real backend data) */}
       <div className="metrics-grid">
         <div className="metric-card">
-          <div className="metric-top"><span>ACTIVE CENTRES</span><ShieldCheck size={17} /></div>
-          <strong className="success">{activeCentresCount} centres</strong>
-          <small>Operational in network</small>
+          <div className="metric-top"><span>{a.totalCentres.toUpperCase()}</span><ShieldCheck size={17} /></div>
+          <strong className="success">{activeCentresCount} {language === 'mr' ? 'केंद्रे' : language === 'hi' ? 'केंद्र' : 'centres'}</strong>
+          <small>{a.allCentresOperational}</small>
         </div>
 
         <div className="metric-card">
-          <div className="metric-top"><span>TOTAL CURRENT QUEUE</span><Users size={17} /></div>
-          <strong className="info">{totalQueue} farmers</strong>
-          <small>Waiting across all centres</small>
+          <div className="metric-top"><span>{a.totalQueue.toUpperCase()}</span><Users size={17} /></div>
+          <strong className="info">{totalQueue} {language === 'mr' ? 'शेतकरी' : language === 'hi' ? 'किसान' : 'farmers'}</strong>
+          <small>{language === 'mr' ? 'सर्व केंद्रांवर प्रतीक्षेत' : language === 'hi' ? 'सभी केंद्रों पर प्रतीक्षारत' : 'Waiting across all centres'}</small>
         </div>
 
         <div className="metric-card">
-          <div className="metric-top"><span>HIGH LOAD CENTRES</span><AlertTriangle size={17} /></div>
+          <div className="metric-top"><span>{language === 'mr' ? 'अतिभार केंद्रे' : language === 'hi' ? 'उच्च भार केंद्र' : 'HIGH LOAD CENTRES'}</span><AlertTriangle size={17} /></div>
           <strong className={highLoadCentresCount > 0 ? 'warning' : 'success'}>
-            {highLoadCentresCount} centres
+            {highLoadCentresCount} {language === 'mr' ? 'केंद्रे' : language === 'hi' ? 'केंद्र' : 'centres'}
           </strong>
-          <small>{highLoadCentresCount > 0 ? 'Requires load balancing' : 'Within normal limits'}</small>
+          <small>{highLoadCentresCount > 0 ? (language === 'mr' ? 'भार नियोजनाची गरज' : language === 'hi' ? 'लोड संतुलन आवश्यक' : 'Requires load balancing') : (language === 'mr' ? 'सर्व सामान्य मर्यादेत' : language === 'hi' ? 'सामान्य सीमा में' : 'Within normal limits')}</small>
         </div>
 
         <div className="metric-card">
-          <div className="metric-top"><span>TOTAL CAPACITY</span><Gauge size={17} /></div>
+          <div className="metric-top"><span>{language === 'mr' ? 'एकूण क्षमता' : language === 'hi' ? 'कुल क्षमता' : 'TOTAL CAPACITY'}</span><Gauge size={17} /></div>
           <strong>{totalCapacity}</strong>
-          <small>Total network slots/day</small>
+          <small>{language === 'mr' ? 'दररोजचे एकूण स्लॉट' : language === 'hi' ? 'प्रति दिन कुल स्लॉट' : 'Total network slots/day'}</small>
         </div>
 
         <div className="metric-card">
-          <div className="metric-top"><span>SYSTEM HEALTH</span><Server size={17} /></div>
+          <div className="metric-top"><span>{language === 'mr' ? 'प्रणाली आरोग्य' : language === 'hi' ? 'सिस्टम स्वास्थ्य' : 'SYSTEM HEALTH'}</span><Server size={17} /></div>
           <strong className={healthData?.status === 'ok' ? 'success' : 'warning'}>
-            {healthData?.status === 'ok' ? 'Online' : 'Checking'}
+            {healthData?.status === 'ok' ? (language === 'mr' ? 'सुरू' : language === 'hi' ? 'सक्रिय' : 'Online') : (language === 'mr' ? 'तपासत आहे' : language === 'hi' ? 'जांच जारी' : 'Checking')}
           </strong>
-          <small>API &amp; MySQL Connected</small>
+          <small>{language === 'mr' ? 'डेटाबेस आणि API जोडलेले' : language === 'hi' ? 'डेटाबेस एवं एपीआई कनेक्टेड' : 'API & Database Connected'}</small>
         </div>
       </div>
 
@@ -185,21 +205,21 @@ export default function AdminDashboard({
       <section className="panel network-panel" style={{ marginBottom: '20px' }}>
         <div className="panel-heading">
           <div>
-            <div className="eyebrow">CENTRE NETWORK STATUS</div>
-            <h2>Procurement Centre Fleet</h2>
+            <div className="eyebrow">{a.networkStatus.toUpperCase()}</div>
+            <h2>{language === 'mr' ? 'खरेदी केंद्र ताफा' : language === 'hi' ? 'खरीद केंद्र बेड़ा' : 'Procurement Centre Fleet'}</h2>
           </div>
-          <span className="status-pill info">{centres.length} centres loaded</span>
+          <span className="status-pill info">{centres.length} {language === 'mr' ? 'केंद्रे लोड झाली' : language === 'hi' ? 'केंद्र लोड हुए' : 'centres loaded'}</span>
         </div>
 
         <div className="data-table network-table">
           <div className="table-head">
-            <span>Centre</span>
-            <span>Queue</span>
-            <span>Processing Rate</span>
-            <span>Capacity</span>
-            <span>Load</span>
-            <span>Status</span>
-            <span>Action</span>
+            <span>{a.centreName}</span>
+            <span>{a.queue}</span>
+            <span>{a.rate}</span>
+            <span>{language === 'mr' ? 'क्षमता' : language === 'hi' ? 'क्षमता' : 'Capacity'}</span>
+            <span>{a.load}</span>
+            <span>{a.status}</span>
+            <span>{language === 'mr' ? 'कृती' : language === 'hi' ? 'कार्रवाई' : 'Action'}</span>
           </div>
 
           {centres.map((c) => {
@@ -215,9 +235,9 @@ export default function AdminDashboard({
                 onClick={() => setSelectedCentre(c)}
               >
                 <b>{c.name}</b>
-                <span>{c.currentQueue} waiting</span>
-                <span>{c.processingRate} min/farmer</span>
-                <span>{c.dailyCapacity} slots</span>
+                <span>{c.currentQueue} {language === 'mr' ? 'प्रतीक्षेत' : language === 'hi' ? 'प्रतीक्षारत' : 'waiting'}</span>
+                <span>{c.processingRate} {language === 'mr' ? 'मि./शेतकरी' : language === 'hi' ? 'मिनट/किसान' : 'min/farmer'}</span>
+                <span>{c.dailyCapacity} {language === 'mr' ? 'स्लॉट' : language === 'hi' ? 'स्लॉट' : 'slots'}</span>
                 <div>
                   <strong className={isHigh ? 'warning-text' : ''}>{loadPercent}%</strong>
                   <div className="load-bar">
@@ -230,7 +250,7 @@ export default function AdminDashboard({
                   </div>
                 </div>
                 <span className={`status-pill ${isHigh ? 'warning' : 'success'}`}>
-                  {c.loadStatus || (isHigh ? 'High Load' : 'Normal')}
+                  {c.loadStatus || (isHigh ? (language === 'mr' ? 'जास्त भार' : language === 'hi' ? 'उच्च भार' : 'High Load') : (language === 'mr' ? 'सामान्य' : language === 'hi' ? 'सामान्य' : 'Normal'))}
                 </span>
                 <span>
                   <button
@@ -242,7 +262,7 @@ export default function AdminDashboard({
                       setSelectedCentre(c)
                     }}
                   >
-                    Inspect
+                    {language === 'mr' ? 'तपासा' : language === 'hi' ? 'जांचें' : 'Inspect'}
                   </button>
                 </span>
               </div>
@@ -257,11 +277,11 @@ export default function AdminDashboard({
         <section className="panel" id="admin-centre-inspector">
           <div className="panel-heading">
             <div>
-              <div className="eyebrow">CENTRE INSPECTOR</div>
-              <h2>{selectedCentre?.name || 'Select a Centre'}</h2>
+              <div className="eyebrow">{a.centreInspector.toUpperCase()}</div>
+              <h2>{selectedCentre?.name || (language === 'mr' ? 'केंद्र निवडा' : language === 'hi' ? 'केंद्र चुनें' : 'Select a Centre')}</h2>
             </div>
             <span className={`status-pill ${selectedCentre?.calculatedLoadPercent >= 80 ? 'warning' : 'success'}`}>
-              {selectedCentre?.calculatedLoadPercent}% Load
+              {selectedCentre?.calculatedLoadPercent}% {a.load}
             </span>
           </div>
 
@@ -274,25 +294,25 @@ export default function AdminDashboard({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '18px' }}>
                 <div style={{ background: '#f8fafb', border: '1px solid #e1e8eb', borderRadius: '5px', padding: '10px' }}>
-                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>Current Queue</small>
+                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>{a.queue}</small>
                   <strong style={{ display: 'block', fontSize: '16px', color: '#12304a' }}>{selectedCentre.currentQueue}</strong>
                 </div>
                 <div style={{ background: '#f8fafb', border: '1px solid #e1e8eb', borderRadius: '5px', padding: '10px' }}>
-                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>Processing Rate</small>
+                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>{a.rate}</small>
                   <strong style={{ display: 'block', fontSize: '16px', color: '#12304a' }}>{selectedCentre.processingRate}m</strong>
                 </div>
                 <div style={{ background: '#f8fafb', border: '1px solid #e1e8eb', borderRadius: '5px', padding: '10px' }}>
-                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>Daily Capacity</small>
+                  <small style={{ color: '#7a8e97', fontSize: '10px' }}>{language === 'mr' ? 'दैनंदिन क्षमता' : language === 'hi' ? 'दैनिक क्षमता' : 'Daily Capacity'}</small>
                   <strong style={{ display: 'block', fontSize: '16px', color: '#12304a' }}>{selectedCentre.dailyCapacity}</strong>
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#12304a', display: 'block', marginBottom: '8px' }}>
-                  Active Procurement Slots:
+                  {language === 'mr' ? 'सक्रिय खरेदी स्लॉट:' : language === 'hi' ? 'सक्रिय खरीद स्लॉट:' : 'Active Procurement Slots:'}
                 </span>
                 {loadingSlots ? (
-                  <div style={{ fontSize: '11px', color: '#6b7a83', padding: '8px 0' }}>Loading slots...</div>
+                  <div style={{ fontSize: '11px', color: '#6b7a83', padding: '8px 0' }}>{language === 'mr' ? 'स्लॉट लोड होत आहेत...' : language === 'hi' ? 'स्लॉट लोड हो रहे हैं...' : 'Loading slots...'}</div>
                 ) : centreSlots.length > 0 ? (
                   <div style={{ display: 'grid', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                     {centreSlots.map((s) => (
@@ -309,20 +329,20 @@ export default function AdminDashboard({
                         }}
                       >
                         <b>{s.startTime} – {s.endTime}</b>
-                        <span>Capacity: {s.bookedCount} / {s.capacity} booked</span>
+                        <span>{language === 'mr' ? 'क्षमता' : language === 'hi' ? 'क्षमता' : 'Capacity'}: {s.bookedCount} / {s.capacity}</span>
                         <span className={`status-pill ${s.isFull ? 'danger' : 'success'}`}>
-                          {s.isFull ? 'Full' : `${s.availableCapacity ?? (s.capacity - s.bookedCount)} open`}
+                          {s.isFull ? (language === 'mr' ? 'पूर्ण' : language === 'hi' ? 'फुल' : 'Full') : `${s.availableCapacity ?? (s.capacity - s.bookedCount)} ${language === 'mr' ? 'उपलब्ध' : language === 'hi' ? 'उपलब्ध' : 'open'}`}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '11px', color: '#6b7a83' }}>No slots configured for this centre.</div>
+                  <div style={{ fontSize: '11px', color: '#6b7a83' }}>{language === 'mr' ? 'या केंद्रासाठी स्लॉट उपलब्ध नाहीत.' : language === 'hi' ? 'इस केंद्र के लिए स्लॉट उपलब्ध नहीं हैं।' : 'No slots configured for this centre.'}</div>
                 )}
               </div>
             </div>
           ) : (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#829098' }}>Select a centre above to inspect details.</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#829098' }}>{a.selectCentre}</div>
           )}
         </section>
 
@@ -330,8 +350,8 @@ export default function AdminDashboard({
         <section className="panel" id="admin-system-health">
           <div className="panel-heading">
             <div>
-              <div className="eyebrow teal">VERIFIED INFRASTRUCTURE</div>
-              <h2>System Health</h2>
+              <div className="eyebrow teal">{language === 'mr' ? 'प्रणाली तपासणी' : language === 'hi' ? 'सिस्टम जांच' : 'VERIFIED INFRASTRUCTURE'}</div>
+              <h2>{a.systemHealth}</h2>
             </div>
             <span className="status-pill info">GET /api/health</span>
           </div>
@@ -342,42 +362,46 @@ export default function AdminDashboard({
                 <Server size={16} color="#2f6f73" /> Express / Next.js REST API
               </span>
               <span className={`status-pill ${healthData?.status === 'ok' ? 'success' : 'danger'}`}>
-                {healthData?.status === 'ok' ? 'Healthy' : 'Disconnected'}
+                {healthData?.status === 'ok' ? (language === 'mr' ? 'सुरू' : language === 'hi' ? 'सक्रिय' : 'Healthy') : (language === 'mr' ? 'बंद' : language === 'hi' ? 'डिस्कनेक्टेड' : 'Disconnected')}
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Database size={16} color="#2f6f73" /> Aiven MySQL (Prisma ORM)
+                <Database size={16} color="#2f6f73" /> {a.database} (Prisma ORM)
               </span>
               <span className={`status-pill ${healthData?.database === 'connected' ? 'success' : 'warning'}`}>
-                {healthData?.database === 'connected' ? 'Connected' : healthData?.database || 'Pending'}
+                {healthData?.database === 'connected' ? a.connected : healthData?.database || (language === 'mr' ? 'प्रलंबित' : language === 'hi' ? 'लंबित' : 'Pending')}
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Radio size={16} color="#2f6f73" /> Socket.IO Realtime Gateway
+                <Radio size={16} color="#2f6f73" /> {a.realtimeServer}
               </span>
               <span className={`status-pill ${isSocketConnected ? 'success' : 'warning'}`}>
-                {isSocketConnected ? 'Connected' : 'Connecting'}
+                {isSocketConnected ? a.connected : (language === 'mr' ? 'जोडत आहे' : language === 'hi' ? 'कनेक्ट हो रहा है' : 'Connecting')}
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Zap size={16} color="#2f6f73" /> Smart Queue Engine
+                <Zap size={16} color="#2f6f73" /> {language === 'mr' ? 'स्मार्ट क्यू इंजिन' : language === 'hi' ? 'स्मार्ट क्यू इंजन' : 'Smart Queue Engine'}
               </span>
               <span className="status-pill success">
-                Rule-based active
+                {a.ruleBasedActive}
               </span>
             </div>
           </div>
 
           <div style={{ marginTop: '20px', padding: '12px', background: '#fbfdfe', border: '1px dashed #ccd7dc', borderRadius: '5px', fontSize: '11px', color: '#687882', lineHeight: 1.5 }}>
-            <b>Historical Analytics Notice:</b>
+            <b>{language === 'mr' ? 'ऐतिहासिक विश्लेषण सूचना:' : language === 'hi' ? 'ऐतिहासिक विश्लेषण सूचना:' : 'Historical Analytics Notice:'}</b>
             <p style={{ margin: '4px 0 0' }}>
-              Historical analytics — planned (SIH Phase 2). Live operational telemetry is backed by Aiven MySQL and the rule-based Smart Queue Engine.
+              {language === 'mr'
+                ? 'ऐतिहासिक विश्लेषण — नियोजित (टप्पा २). थेट परिचालन माहिती स्मार्ट क्यू इंजिनशी समक्रमित आहे.'
+                : language === 'hi'
+                ? 'ऐतिहासिक विश्लेषण — नियोजित (चरण 2)। लाइव परिचालन टेलीमेट्री स्मार्ट क्यू इंजन से सिंक है।'
+                : 'Historical analytics — planned (Phase 2). Live operational telemetry is synchronized with the Smart Queue Engine.'}
             </p>
           </div>
         </section>

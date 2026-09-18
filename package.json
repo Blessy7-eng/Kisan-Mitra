@@ -8,7 +8,7 @@
     "start": "tsx server.ts",
     "lint": "tsc --noEmit",
     "test": "tsx tests/backend-flow.ts && tsx tests/phase1-socket-test.ts && tsx tests/phase2-api-test.ts && tsx tests/phase3-realtime-test.ts && tsx tests/booking-transaction-verification.ts && tsx tests/sih-architecture-verification.ts",
-    "test:sih": "tsx tests/sih-architecture-verification.ts",
+    "test:arch": "tsx tests/sih-architecture-verification.ts",
     "test:booking": "tsx tests/booking-transaction-verification.ts",
     "test:core": "tsx tests/backend-flow.ts",
     "test:phase1": "tsx tests/phase1-socket-test.ts",
