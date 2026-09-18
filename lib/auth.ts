@@ -2,7 +2,16 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { Role } from '@prisma/client'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kisan-mitra-sih26032-fallback-secret'
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (secret) {
+    return secret
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET environment variable is required in production.')
+  }
+  return 'kisan-mitra-dev-fallback-secret-non-production'
+}
 
 export interface AuthTokenPayload {
   userId: string
@@ -32,12 +41,12 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 export function signToken(payload: AuthTokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
 export function verifyToken(token: string): AuthTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthTokenPayload
+    return jwt.verify(token, getJwtSecret()) as AuthTokenPayload
   } catch {
     return null
   }
