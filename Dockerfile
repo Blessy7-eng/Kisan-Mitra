@@ -1,53 +1,63 @@
-# Stage 1: Build stage
-FROM node:22-alpine AS builder
+# Production Dockerfile for Kisan-Mitra
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
 
-# Install dependencies needed for build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# -------------------------
+# Dependencies
+# -------------------------
+FROM base AS deps
+
 COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+
 RUN npm ci
 
-# Copy Prisma schema and generate client
-COPY prisma ./prisma
-RUN npx prisma generate
 
-# Copy application source
+# -------------------------
+# Build
+# -------------------------
+FROM base AS builder
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build Next.js
 ENV NODE_ENV=production
+
+RUN npx prisma generate
 RUN npm run build
 
-# Stage 2: Production runner stage
-FROM node:22-alpine AS runner
 
-WORKDIR /app
+# -------------------------
+# Production runner
+# -------------------------
+FROM base AS runner
 
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV ALLOW_IN_MEMORY_DB_FALLBACK=false
 
-# Security: non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs \
+    && useradd --system --uid 1001 --gid nodejs kisan
 
-# Copy needed dependencies and build outputs
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json ./package-lock.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/server.ts ./server.ts
-COPY --from=builder /app/app ./app
-COPY --from=builder /app/backend ./backend
-COPY --from=builder /app/services ./services
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --from=builder --chown=kisan:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=kisan:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=kisan:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=kisan:nodejs /app/.next ./.next
+COPY --from=builder --chown=kisan:nodejs /app/public ./public
+COPY --from=builder --chown=kisan:nodejs /app/server.ts ./server.ts
+COPY --from=builder --chown=kisan:nodejs /app/backend ./backend
+COPY --from=builder --chown=kisan:nodejs /app/lib ./lib
+COPY --from=builder --chown=kisan:nodejs /app/services ./services
+COPY --from=builder --chown=kisan:nodejs /app/tsconfig.json ./tsconfig.json
 
-USER nextjs
+USER kisan
 
 EXPOSE 3000
-
-ENV PORT=3000
 
 CMD ["npm", "start"]
