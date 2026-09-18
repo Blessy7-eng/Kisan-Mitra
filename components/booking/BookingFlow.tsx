@@ -73,7 +73,9 @@ export default function BookingFlow({
     async function loadSlots() {
       setLoadingSlots(true)
       try {
-        const res = await fetch(`/api/centres/${selectedCentre.id}/slots`)
+        const res = await fetch(`/api/centres/${selectedCentre.id}/slots`, {
+          headers: farmerToken ? { Authorization: `Bearer ${farmerToken}` } : {},
+        })
         const data = await res.json()
         if (res.ok && Array.isArray(data.slots)) {
           setSlots(data.slots)

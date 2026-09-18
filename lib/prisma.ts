@@ -242,6 +242,31 @@ function createFallbackStore() {
         return null
       },
       findFirst: async ({ where }: any) => {
+        if (where?.OR && Array.isArray(where.OR)) {
+          return (
+            store.users.find((u) =>
+              where.OR.some(
+                (cond: any) =>
+                  (cond.phone && u.phone === cond.phone) ||
+                  (cond.id && u.id === cond.id) ||
+                  (cond.role && u.role === cond.role)
+              )
+            ) || null
+          )
+        }
+        if (where?.AND && Array.isArray(where.AND)) {
+          return (
+            store.users.find((u) =>
+              where.AND.every(
+                (cond: any) =>
+                  (!cond.phone || u.phone === cond.phone) &&
+                  (!cond.id || u.id === cond.id) &&
+                  (!cond.role || u.role === cond.role)
+              )
+            ) || null
+          )
+        }
+        if (where?.role && where?.phone) return store.users.find((u) => u.role === where.role && u.phone === where.phone) || null
         if (where?.role) return store.users.find((u) => u.role === where.role) || null
         if (where?.phone) return store.users.find((u) => u.phone === where.phone) || null
         if (where?.id) return store.users.find((u) => u.id === where.id) || null

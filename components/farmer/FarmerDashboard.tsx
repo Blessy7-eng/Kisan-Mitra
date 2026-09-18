@@ -16,18 +16,22 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  Sparkles,
+  Globe,
+  Info,
 } from 'lucide-react'
-import { calculateArrivalWindow, calculateCentreLoad, calculateETA, handleMissedSlot } from '@/lib/smartQueueEngine'
+import { calculateCentreLoad, calculateETA, handleMissedSlot } from '@/lib/smartQueueEngine'
+import { Language, maskPhoneNumber } from '@/lib/i18n'
 
 interface FarmerDashboardProps {
   farmerName: string
   farmerPhone: string
   state: any
   onBookSlot: () => void
-  onDelayToggle: () => void
+  onDelayToggle?: () => void
   onRecoverSlot: () => void
   lastEtaChangeNotice: string | null
+  language: Language
+  onLanguageChange: (lang: Language) => void
 }
 
 export default function FarmerDashboard({
@@ -35,14 +39,14 @@ export default function FarmerDashboard({
   farmerPhone,
   state,
   onBookSlot,
-  onDelayToggle,
   onRecoverSlot,
   lastEtaChangeNotice,
+  language,
+  onLanguageChange,
 }: FarmerDashboardProps) {
   const [showWhyEta, setShowWhyEta] = useState(false)
-  const [language, setLanguage] = useState<'en' | 'hi' | 'mr'>('en')
 
-  // Derive model for display and calculations
+  // Derive model for display and calculations defensively
   const centreState = {
     queue: (Number(state.ahead) || 0) + 14,
     capacity: Number(state.capacity) || 60,
@@ -55,6 +59,93 @@ export default function FarmerDashboard({
   const backendEta = state.etaMinutes ?? calculateETA(state.ahead, centreState)
   const arrivalWindow = state.slot || '10:40 – 11:00 AM'
   const recovery = handleMissedSlot(calculateCentreLoad(centreState))
+
+  // Mask phone number for privacy
+  const maskedPhone = maskPhoneNumber(farmerPhone)
+
+  // Format today's date dynamically
+  const todayFormatted = new Date().toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  // Loading State
+  if (state.bookingLoading) {
+    return (
+      <div className="farmer-dashboard-container" style={{ padding: '60px 20px', textAlign: 'center' }}>
+        <RefreshCw size={32} className="animate-spin text-teal-600" style={{ margin: '0 auto 16px', display: 'block' }} />
+        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#12304a', marginBottom: '8px' }}>
+          Loading your booking…
+        </h2>
+        <p style={{ color: '#607282', fontSize: '13px' }}>
+          Fetching authoritative token and queue information from APMC servers.
+        </p>
+      </div>
+    )
+  }
+
+  // Clear Empty State when farmer has no active booking
+  if (!state.booked) {
+    return (
+      <div className="farmer-dashboard-container">
+        {/* Top Welcome Row */}
+        <div className="welcome-row">
+          <div>
+            <div className="eyebrow">
+              FARMER PORTAL <span className="live-dot" /> Live queue tracking
+            </div>
+            <h1>{farmerName ? `Good morning, ${farmerName.split(' ')[0]}` : 'Welcome, Farmer'}</h1>
+            <p className="subtle">
+              {maskedPhone} · Intelligent procurement queue & predictable arrival windows.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label className="language-select">
+              <Globe size={13} />
+              <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="mr">मराठी</option>
+              </select>
+            </label>
+            <button className="button primary" onClick={onBookSlot} id="farmer-empty-book-top-btn">
+              Book a slot <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Empty State Banner Required by Section 6 */}
+        <div
+          className="panel"
+          style={{
+            padding: '56px 24px',
+            textAlign: 'center',
+            margin: '24px 0',
+            border: '2px dashed #cbd5e1',
+            borderRadius: '12px',
+            backgroundColor: '#ffffff',
+          }}
+        >
+          <Clock3 size={48} style={{ margin: '0 auto 16px', color: '#0f766e', display: 'block' }} />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+            You do not have an active booking.
+          </h2>
+          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px' }}>
+            Book a slot to receive your token.
+          </p>
+          <button
+            className="button primary"
+            onClick={onBookSlot}
+            id="farmer-empty-state-book-btn"
+            style={{ padding: '12px 24px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            Book a slot <ArrowRight size={18} />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // Translations for primary farmer-facing labels
   const i18n = {
@@ -75,6 +166,7 @@ export default function FarmerDashboard({
       trackQueue: 'Track Queue',
       myCentre: 'My Centre',
       journeyTitle: 'Track your procurement journey',
+      sampleData: 'Sample booking',
     },
     hi: {
       greeting: `नमस्ते, ${farmerName.split(' ')[0] || 'किसान'}`,
@@ -93,6 +185,7 @@ export default function FarmerDashboard({
       trackQueue: 'कतार देखें',
       myCentre: 'मेरा खरीद केंद्र',
       journeyTitle: 'खरीद प्रक्रिया की प्रगति',
+      sampleData: 'नमूना बुकिंग',
     },
     mr: {
       greeting: `शुभ सकाळ, ${farmerName.split(' ')[0] || 'शेतकरी'}`,
@@ -111,6 +204,7 @@ export default function FarmerDashboard({
       trackQueue: 'रांग तपासा',
       myCentre: 'माझे केंद्र',
       journeyTitle: 'धान्य खरेदी प्रवास',
+      sampleData: 'प्रात्यक्षिक बुकिंग',
     },
   }[language]
 
@@ -159,16 +253,21 @@ export default function FarmerDashboard({
         <div>
           <div className="eyebrow">
             FARMER PORTAL <span className="live-dot" /> Live queue tracking
+            {!state.bookingId && (
+              <span className="demo-pill-badge" style={{ marginLeft: '10px' }}>
+                <Info size={11} /> {i18n.sampleData}
+              </span>
+            )}
           </div>
           <h1>{i18n.greeting}</h1>
           <p className="subtle">
-            <MapPin size={14} /> {state.centre} · {farmerPhone} · {i18n.subtitle}
+            <MapPin size={14} /> {state.centre} · {maskedPhone} · {i18n.subtitle}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <label className="language-select">
-            Language
-            <select value={language} onChange={(e: any) => setLanguage(e.target.value)}>
+            <Globe size={13} />
+            <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
               <option value="en">English</option>
               <option value="hi">हिन्दी</option>
               <option value="mr">मराठी</option>
@@ -206,32 +305,30 @@ export default function FarmerDashboard({
         </div>
       </section>
 
-      {/* KPI Metrics Row */}
+      {/* KPI Metrics Row - PRIORITIZED: ETA, Arrival Window, Token, Queue Position */}
       <div className="metrics-grid farmer-metrics">
-        <div className="metric-card">
-          <div className="metric-top"><span>{i18n.nextAppt}</span><Clock3 size={17} /></div>
-          <strong>{arrivalWindow.split(' – ')[0] || '10:40 AM'}</strong>
-          <small>{state.centre} · Token {state.token}</small>
+        <div className="metric-card primary-kpi">
+          <div className="metric-top"><span>{i18n.estWait} (ETA)</span><Gauge size={17} /></div>
+          <strong className={state.delayMinutes ? 'warning' : 'primary-eta'}>{backendEta} min</strong>
+          <small>{state.delayMinutes ? 'Updated live (+15m delay recorded)' : 'Calculated by Smart Queue Engine'}</small>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card primary-kpi">
+          <div className="metric-top"><span>{i18n.arrWindow}</span><Clock3 size={17} /></div>
+          <strong>{arrivalWindow}</strong>
+          <small>{todayFormatted} · 20-min recommended window</small>
+        </div>
+
+        <div className="metric-card primary-kpi">
+          <div className="metric-top"><span>Token Number</span><ShieldCheck size={17} /></div>
+          <strong className="success-token">{state.token}</strong>
+          <small>{state.centre} · Authoritative token</small>
+        </div>
+
+        <div className="metric-card primary-kpi">
           <div className="metric-top"><span>{i18n.queuePos}</span><Users size={17} /></div>
           <strong className="info">#{state.ahead + 1} in queue</strong>
           <small>{state.ahead} farmers ahead of you</small>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-top"><span>{i18n.estWait}</span><Gauge size={17} /></div>
-          <strong className={state.delayMinutes ? 'warning' : ''}>{backendEta} min</strong>
-          <small>{state.delayMinutes ? 'Updated just now (+15m delay)' : 'Updated just now'}</small>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-top"><span>{i18n.procStatus}</span><ShieldCheck size={17} /></div>
-          <strong className="success">
-            {state.stage === 'Queue processing' ? 'In Queue' : state.stage.replace('Procurement ', '')}
-          </strong>
-          <small>Produce check &amp; verification</small>
         </div>
       </div>
 
@@ -242,11 +339,11 @@ export default function FarmerDashboard({
           <div className="panel-heading">
             <div>
               <div className="eyebrow">
-                LIVE QUEUE STATUS <span className="live-dot" /> Authoritative calculation
+                LIVE QUEUE STATUS <span className="live-dot" /> Smart Queue Engine
               </div>
               <h2>{i18n.yourQueue}</h2>
             </div>
-            <span className="status-pill success">Updated just now</span>
+            <span className="status-pill success">{todayFormatted}</span>
           </div>
 
           {/* Interactive Queue Rail */}
@@ -269,7 +366,7 @@ export default function FarmerDashboard({
             <div className="queue-foot">
               <span>{state.currentToken} <Check size={13} /></span>
               <span className="processing-text">Counter 1-4 active</span>
-              <span className="your-text">{state.token} you · {backendEta} min</span>
+              <span className="your-text">{state.token} you · {backendEta} min wait</span>
             </div>
           </div>
 
@@ -285,7 +382,7 @@ export default function FarmerDashboard({
             <div className="appointment-card">
               <span>{i18n.arrWindow}</span>
               <strong>{arrivalWindow}</strong>
-              <span>Token <b>{state.token}</b> · Today</span>
+              <span>Token <b>{state.token}</b> · {todayFormatted}</span>
             </div>
           </div>
 
@@ -343,7 +440,7 @@ export default function FarmerDashboard({
           <p style={{ margin: '0 0 12px', color: '#52636f' }}>
             {state.centre}
             <br />
-            Arrival window: <strong>{arrivalWindow}</strong>
+            Arrival window: <strong>{arrivalWindow}</strong> ({todayFormatted})
           </p>
           <span className={`status-pill ${state.delayMinutes ? 'warning' : 'success'}`}>
             {state.delayMinutes ? 'Window updated (+15m)' : 'Booking confirmed'}

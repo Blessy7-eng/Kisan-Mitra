@@ -40,8 +40,8 @@ router.patch('/:id', authenticateToken, async (req, res) => {
   }
 })
 
-// Public: Get slots for a centre (optional ?date=YYYY-MM-DD filter)
-router.get('/:id/slots', async (req, res) => {
+// Authenticated: Get slots for a centre (optional ?date=YYYY-MM-DD filter)
+router.get('/:id/slots', authenticateToken, async (req, res) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
     const date = typeof req.query.date === 'string' ? req.query.date : undefined

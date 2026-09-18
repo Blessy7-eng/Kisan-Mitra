@@ -52,7 +52,22 @@ const mockPrisma: any = {
       return null
     },
     findFirst: async ({ where }: any) => {
+      if (where?.OR && Array.isArray(where.OR)) {
+        return (
+          mockUsers.find((u) =>
+            where.OR.some(
+              (cond: any) =>
+                (cond.phone && u.phone === cond.phone) ||
+                (cond.id && u.id === cond.id) ||
+                (cond.role && u.role === cond.role)
+            )
+          ) || null
+        )
+      }
+      if (where?.role && where?.phone) return mockUsers.find((u) => u.role === where.role && u.phone === where.phone) || null
       if (where?.role) return mockUsers.find((u) => u.role === where.role) || null
+      if (where?.phone) return mockUsers.find((u) => u.phone === where.phone) || null
+      if (where?.id) return mockUsers.find((u) => u.id === where.id) || null
       return mockUsers[0] || null
     },
     create: async ({ data }: any) => {
@@ -380,15 +395,16 @@ async function runPhase2Tests() {
       console.error('❌ Test 9 failed:', officerBlocked)
     }
 
-    // 10. Slots: Get slots for centre
+    // 10. Slots: Get slots for centre (Authenticated)
     total++
-    const slotsRes = await request('GET', `/api/centres/${testCentreId}/slots`)
+    const slotsUnauth = await request('GET', `/api/centres/${testCentreId}/slots`)
+    const slotsRes = await request('GET', `/api/centres/${testCentreId}/slots`, undefined, farmerToken)
     let testSlotId = 'slot_1'
-    if (slotsRes.status === 200 && Array.isArray(slotsRes.data.slots)) {
-      console.log(`✅ Test 10: /api/centres/:id/slots returned ${slotsRes.data.slots.length} slots`)
+    if (slotsUnauth.status === 401 && slotsRes.status === 200 && Array.isArray(slotsRes.data.slots)) {
+      console.log(`✅ Test 10: /api/centres/:id/slots protected with auth (401 unauth rejected, returned ${slotsRes.data.slots.length} slots with token)`)
       passed++
     } else {
-      console.error('❌ Test 10 failed:', slotsRes)
+      console.error('❌ Test 10 failed:', { slotsUnauth: slotsUnauth.status, slotsRes: slotsRes.status })
     }
 
     // 11. Bookings: Farmer create booking
@@ -437,24 +453,26 @@ async function runPhase2Tests() {
       console.error('❌ Test 13 failed: No booking ID')
     }
 
-    // 14. Queue: Retrieve live centre queue
+    // 14. Queue: Retrieve live centre queue (Requires Authentication)
     total++
-    const queueRes = await request('GET', `/api/queue/${testCentreId}`)
-    if (queueRes.status === 200 && queueRes.data.centre && Array.isArray(queueRes.data.queue)) {
-      console.log(`✅ Test 14: /api/queue/:centreId returned queue depth of ${queueRes.data.queue.length}`)
+    const queueUnauth = await request('GET', `/api/queue/${testCentreId}`)
+    const queueRes = await request('GET', `/api/queue/${testCentreId}`, undefined, farmerToken)
+    if (queueUnauth.status === 401 && queueRes.status === 200 && queueRes.data.centre && Array.isArray(queueRes.data.queue)) {
+      console.log(`✅ Test 14: /api/queue/:centreId protected (401 unauth, returned queue depth of ${queueRes.data.queue.length} with token)`)
       passed++
     } else {
-      console.error('❌ Test 14 failed:', queueRes)
+      console.error('❌ Test 14 failed:', { queueUnauth: queueUnauth.status, queueRes: queueRes.status })
     }
 
-    // 15. Queue ETA: Retrieve dynamic ETA
+    // 15. Queue ETA: Retrieve dynamic ETA (Requires Authentication)
     total++
-    const etaRes = await request('GET', `/api/queue/${testCentreId}/eta?bookingId=${bookingId}`)
-    if (etaRes.status === 200 && typeof etaRes.data.etaMinutes === 'number' && etaRes.data.liveArrivalWindow) {
-      console.log(`✅ Test 15: /api/queue/:centreId/eta computed ETA of ${etaRes.data.etaMinutes} min and window: ${etaRes.data.liveArrivalWindow}`)
+    const etaUnauth = await request('GET', `/api/queue/${testCentreId}/eta?bookingId=${bookingId}`)
+    const etaRes = await request('GET', `/api/queue/${testCentreId}/eta?bookingId=${bookingId}`, undefined, farmerToken)
+    if (etaUnauth.status === 401 && etaRes.status === 200 && typeof etaRes.data.etaMinutes === 'number' && etaRes.data.liveArrivalWindow) {
+      console.log(`✅ Test 15: /api/queue/:centreId/eta protected (401 unauth, computed ETA of ${etaRes.data.etaMinutes} min and window: ${etaRes.data.liveArrivalWindow})`)
       passed++
     } else {
-      console.error('❌ Test 15 failed:', etaRes)
+      console.error('❌ Test 15 failed:', { etaUnauth: etaUnauth.status, etaRes: etaRes.status })
     }
 
     console.log(`\n🎉 Phase 2 Express REST API & RBAC Test Suite: ${passed}/${total} Passed!`)

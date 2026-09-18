@@ -91,7 +91,9 @@ export default function AdminDashboard({
     async function fetchSlots() {
       setLoadingSlots(true)
       try {
-        const res = await fetch(`/api/centres/${selectedCentre.id}/slots`)
+        const res = await fetch(`/api/centres/${selectedCentre.id}/slots`, {
+          headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+        })
         const data = await res.json()
         if (active && res.ok && Array.isArray(data.slots)) {
           setCentreSlots(data.slots)

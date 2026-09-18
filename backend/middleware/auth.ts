@@ -48,7 +48,8 @@ export async function authenticateToken(
   }
 }
 
-export function requireRole(...allowedRoles: Role[]) {
+export function requireRole(...args: (Role | Role[])[]) {
+  const allowedRoles = args.flat()
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Unauthorized: Authentication required' })

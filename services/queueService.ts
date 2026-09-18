@@ -8,6 +8,8 @@ import {
   CentreState,
 } from '@/lib/smartQueueEngine'
 import { getSocketIO } from '@/backend/socket'
+import { AuthenticatedUser } from '@/lib/auth'
+import { maskPhoneNumber } from '@/lib/i18n'
 
 export interface RecalculatedQueueUpdate {
   centreId: string
@@ -170,7 +172,7 @@ export async function recalculateCentreQueueAndBroadcast(centreId: string) {
   }
 }
 
-export async function getCentreQueue(centreId: string) {
+export async function getCentreQueue(centreId: string, currentUser?: AuthenticatedUser) {
   const centre = await prisma.centre.findUnique({
     where: { id: centreId },
   })
@@ -235,21 +237,25 @@ export async function getCentreQueue(centreId: string) {
     queue: activeBookings.map((b, index) => {
       const ahead = Math.max(0, index - (currentlyProcessing ? 1 : 0))
       const dynamicEta = calculateETA(ahead, centreState)
+      const isOwner = currentUser?.role === 'FARMER' ? b.farmerId === currentUser.id : true
+
       return {
         id: b.id,
         tokenNumber: b.tokenNumber,
-        farmerName: b.farmer.name,
+        farmerName: isOwner ? b.farmer.name : `Farmer (Token ${b.tokenNumber})`,
+        phone: isOwner ? maskPhoneNumber(b.farmer.phone) : undefined,
         slotTime: `${b.slot.startTime} – ${b.slot.endTime}`,
         status: b.status,
         positionInQueue: ahead + 1,
         liveEtaMinutes: dynamicEta,
         arrivalWindow: `${b.arrivalStart} – ${b.arrivalEnd}`,
+        isYourToken: isOwner,
       }
     }),
   }
 }
 
-export async function getQueueETA(centreId: string, bookingId?: string) {
+export async function getQueueETA(centreId: string, bookingId?: string, currentUser?: AuthenticatedUser) {
   const centre = await prisma.centre.findUnique({
     where: { id: centreId },
     include: {
@@ -291,6 +297,13 @@ export async function getQueueETA(centreId: string, bookingId?: string) {
     })
 
     if (targetBooking && targetBooking.centreId === centreId) {
+      // Authorization check: If a farmer is querying an explicit booking ETA, ensure it belongs to them
+      if (currentUser?.role === 'FARMER' && targetBooking.farmerId !== currentUser.id) {
+        const error: any = new Error('You are not authorized to view this booking')
+        error.statusCode = 403
+        throw error
+      }
+
       farmersAhead = await prisma.booking.count({
         where: {
           centreId,

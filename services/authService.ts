@@ -23,6 +23,7 @@ export interface RegisterInput {
 export interface LoginInput {
   phone: string
   password: string
+  expectedRole?: Role
 }
 
 export async function registerUser(input: RegisterInput) {
@@ -100,6 +101,13 @@ export async function loginUser(input: LoginInput) {
   const valid = await comparePassword(password, user.passwordHash)
   if (!valid) {
     throw new Error('Invalid User ID / mobile number or password')
+  }
+
+  // Reject mismatched roles with the required authoritative security message
+  if (input.expectedRole && user.role !== input.expectedRole) {
+    const err: any = new Error('These credentials are not authorized for the selected role.')
+    err.statusCode = 403
+    throw err
   }
 
   const token = signToken({

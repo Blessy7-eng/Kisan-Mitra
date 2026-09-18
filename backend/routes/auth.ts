@@ -29,8 +29,9 @@ router.post('/register', async (req, res) => {
 // Public Login
 router.post('/login', async (req, res) => {
   try {
-    const { phone, password } = req.body
-    const result = await loginUser({ phone, password })
+    const { phone, password, role, expectedRole } = req.body
+    const targetRole = expectedRole || role
+    const result = await loginUser({ phone, password, expectedRole: targetRole })
     res.status(200).json(result)
   } catch (error: any) {
     const status = error.statusCode || 400

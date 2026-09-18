@@ -5,6 +5,10 @@ import slotsRouter from './routes/slots'
 import bookingsRouter from './routes/bookings'
 import farmersRouter from './routes/farmers'
 import queueRouter from './routes/queue'
+import usersRouter from './routes/users'
+import procurementRouter from './routes/procurement'
+import paymentsRouter from './routes/payments'
+import notificationsRouter from './routes/notifications'
 import { errorHandler } from './middleware/errorHandler'
 import { checkDatabaseHealth } from '../lib/prisma'
 
@@ -51,6 +55,10 @@ export function createExpressApp(): Express {
   app.use('/api/bookings', bookingsRouter)
   app.use('/api/farmers', farmersRouter)
   app.use('/api/queue', queueRouter)
+  app.use('/api/users', usersRouter)
+  app.use('/api/procurement', procurementRouter)
+  app.use('/api/payments', paymentsRouter)
+  app.use('/api/notifications', notificationsRouter)
 
   // Error Handler Middleware
   app.use(errorHandler)

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import {
   Activity,
@@ -21,6 +21,8 @@ import {
   Users,
   X,
   Zap,
+  Globe,
+  Menu,
 } from 'lucide-react'
 import RoleSelectionScreen, { SelectedRole } from '@/components/role-selection/RoleSelectionScreen'
 import RoleLoginScreen from '@/components/auth/RoleLoginScreen'
@@ -29,11 +31,13 @@ import OfficerDashboard from '@/components/officer/OfficerDashboard'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 import BookingFlow from '@/components/booking/BookingFlow'
 import { calculateCentreLoad, handleMissedSlot } from '@/lib/smartQueueEngine'
+import { Language, maskPhoneNumber, translations } from '@/lib/i18n'
 
 export type AuthStatus = 'ROLE_SELECTION' | 'LOGIN' | 'AUTHENTICATED'
 export type Role = 'farmer' | 'officer' | 'admin'
 export type Stage = 'Queue processing' | 'Produce verification' | 'Procurement completed'
 export type Notice = { id: number; text: string; audience: Role | 'all'; time: string }
+export type SocketStatus = 'Live' | 'Connecting…' | 'Reconnecting…' | 'Offline'
 
 export type DemoState = {
   token: string
@@ -55,28 +59,30 @@ export type DemoState = {
   notices: Notice[]
   missed: boolean
   etaMinutes: number
+  bookingLoading?: boolean
 }
 
 const NASHIK_CENTRE_ID = 'cmu5e1cag0000s6k48rlx1elq'
 
 const initialDemoState: DemoState = {
-  token: 'K-124',
-  ahead: 8,
-  currentToken: 'K-116',
+  token: '',
+  ahead: 0,
+  currentToken: 'K-101',
   processingMinutes: 5.25,
-  capacity: 61,
+  capacity: 60,
   delayMinutes: 0,
   stage: 'Queue processing',
   payment: 'Pending',
   centre: 'Nashik Procurement Centre',
   centreId: NASHIK_CENTRE_ID,
-  slot: '10:40 – 11:00 AM',
-  booked: true,
-  bookings: 84,
-  processingCount: 3,
+  slot: '',
+  booked: false,
+  bookings: 0,
+  processingCount: 0,
   missed: false,
-  etaMinutes: 42,
-  notices: [{ id: 1, text: 'Your slot has been confirmed.', audience: 'farmer', time: 'Just now' }],
+  etaMinutes: 0,
+  notices: [],
+  bookingLoading: false,
 }
 
 const navItems: Record<Role, string[]> = {
@@ -86,6 +92,9 @@ const navItems: Record<Role, string[]> = {
 }
 
 export default function Page() {
+  // Localization state
+  const [currentLanguage, setCurrentLanguage] = useState<Language>('en')
+
   // Authentication & Navigation Flow States
   const [authStatus, setAuthStatus] = useState<AuthStatus>('ROLE_SELECTION')
   const [selectedRoleContext, setSelectedRoleContext] = useState<SelectedRole>('farmer')
@@ -95,10 +104,12 @@ export default function Page() {
   // In-App Navigation State
   const [page, setPage] = useState<string>('Dashboard')
   const [showNotices, setShowNotices] = useState<boolean>(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
+  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false)
 
   // Real-time Queue State
   const [state, setState] = useState<DemoState>(initialDemoState)
-  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false)
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>('Connecting…')
   const [lastEtaChangeNotice, setLastEtaChangeNotice] = useState<string | null>(null)
 
   const socketRef = useRef<Socket | null>(null)
@@ -118,12 +129,13 @@ export default function Page() {
       if (socketRef.current) {
         socketRef.current.disconnect()
         socketRef.current = null
-        setIsSocketConnected(false)
       }
+      setSocketStatus('Offline')
       return
     }
 
     let active = true
+    setSocketStatus('Connecting…')
 
     const socket = io({
       path: '/socket.io',
@@ -138,7 +150,7 @@ export default function Page() {
 
     socket.on('connect', () => {
       if (!active) return
-      setIsSocketConnected(true)
+      setSocketStatus('Live')
 
       // Join assigned centre room based on authenticated role and assignment
       const targetCentreId =
@@ -151,9 +163,19 @@ export default function Page() {
       }
     })
 
+    socket.on('reconnect_attempt', () => {
+      if (!active) return
+      setSocketStatus('Reconnecting…')
+    })
+
     socket.on('disconnect', () => {
       if (!active) return
-      setIsSocketConnected(false)
+      setSocketStatus('Offline')
+    })
+
+    socket.on('connect_error', () => {
+      if (!active) return
+      setSocketStatus('Offline')
     })
 
     // Authoritative broadcast from Smart Queue Engine when officer updates conditions
@@ -233,9 +255,100 @@ export default function Page() {
       active = false
       socket.disconnect()
       socketRef.current = null
-      setIsSocketConnected(false)
+      setSocketStatus('Offline')
     }
   }, [authStatus, authToken, activeRole, authUser, state.centreId])
+
+  // Step 1b: When a Farmer is Authenticated, load their authoritative booking state from backend
+  useEffect(() => {
+    if (authStatus !== 'AUTHENTICATED' || activeRole !== 'farmer' || !authUser?.id || !authToken) {
+      return
+    }
+
+    let isMounted = true
+    setState((prev) => ({ ...prev, bookingLoading: true }))
+
+    fetch(`/api/farmers/${authUser.id}/bookings`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to fetch farmer bookings'))))
+      .then(async (data) => {
+        if (!isMounted) return
+        const bookings = data.bookings || []
+        const active = bookings.find(
+          (b: any) => b.status === 'CONFIRMED' || b.status === 'PROCESSING' || b.status === 'PENDING'
+        )
+
+        if (!active) {
+          setState((prev) => ({
+            ...prev,
+            booked: false,
+            token: '',
+            bookingId: undefined,
+            bookingLoading: false,
+          }))
+          return
+        }
+
+        // Active booking detected: fetch dynamic queue ETA
+        let etaMinutes = 20
+        let farmersAhead = 0
+        let arrivalWindow = `${active.arrivalStart} – ${active.arrivalEnd}`
+
+        try {
+          const etaRes = await fetch(`/api/queue/${active.centreId}/eta?bookingId=${active.id}`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          })
+          if (etaRes.ok) {
+            const etaData = await etaRes.json()
+            etaMinutes = etaData.etaMinutes ?? 20
+            farmersAhead = etaData.farmersAhead ?? 0
+            if (etaData.liveArrivalWindow) {
+              arrivalWindow = etaData.liveArrivalWindow
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load queue ETA for active booking:', err)
+        }
+
+        if (!isMounted) return
+        setState((prev) => ({
+          ...prev,
+          booked: true,
+          bookingId: active.id,
+          token: active.tokenNumber,
+          ahead: farmersAhead,
+          slot: arrivalWindow,
+          etaMinutes,
+          centre: active.centre?.name || prev.centre,
+          centreId: active.centreId,
+          slotId: active.slotId,
+          stage:
+            active.status === 'PROCESSING'
+              ? 'Produce verification'
+              : active.status === 'COMPLETED'
+              ? 'Procurement completed'
+              : 'Queue processing',
+          bookingLoading: false,
+        }))
+
+        // Join the socket room for this centre
+        if (socketRef.current && active.centreId) {
+          socketRef.current.emit('join:centre', { centreId: active.centreId })
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        console.error('Error fetching farmer booking:', err)
+        setState((prev) => ({ ...prev, bookingLoading: false, booked: false }))
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [authStatus, activeRole, authUser?.id, authToken])
 
   // Step 1: Handle User Selecting a Role Context from "Who are you?"
   const handleSelectRole = (role: SelectedRole) => {
@@ -252,17 +365,39 @@ export default function Page() {
     setShowNotices(false)
   }
 
-  // Step 3: Handle Logout / Switch Account
-  const handleLogout = () => {
+  // Step 3: Trigger Logout Confirmation
+  const handlePromptLogout = () => {
+    setShowLogoutModal(true)
+  }
+
+  // Step 4: Execute Complete Secure Invalidation & Reset
+  const handleConfirmLogout = () => {
     if (socketRef.current) {
       socketRef.current.disconnect()
       socketRef.current = null
     }
     setAuthToken(null)
     setAuthUser(null)
-    setIsSocketConnected(false)
+    setSocketStatus('Offline')
     setShowNotices(false)
     setLastEtaChangeNotice(null)
+    setState(initialDemoState)
+    setShowLogoutModal(false)
+
+    // Clear client-side stored session tokens
+    try {
+      localStorage.removeItem('km_token')
+      localStorage.removeItem('km_user')
+      sessionStorage.clear()
+    } catch {
+      // safe fallback
+    }
+
+    // Replace browser history state to prevent back-button re-entry into protected dashboard
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/')
+    }
+
     setAuthStatus('ROLE_SELECTION')
   }
 
@@ -337,7 +472,13 @@ export default function Page() {
 
   // SCREEN 1: ROLE SELECTION ("Who are you?")
   if (authStatus === 'ROLE_SELECTION') {
-    return <RoleSelectionScreen onSelectRole={handleSelectRole} />
+    return (
+      <RoleSelectionScreen
+        onSelectRole={handleSelectRole}
+        currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
+      />
+    )
   }
 
   // SCREEN 2: ROLE-SPECIFIC LOGIN (with authoritative backend RBAC verification)
@@ -347,12 +488,15 @@ export default function Page() {
         selectedRole={selectedRoleContext}
         onBackToRoles={() => setAuthStatus('ROLE_SELECTION')}
         onLoginSuccess={handleLoginSuccess}
+        currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
       />
     )
   }
 
   // SCREEN 3: AUTHENTICATED APPLICATION SHELL
   const title = page
+  const t = translations[currentLanguage]
 
   // Filter notices for current role
   const relevantNotices = state.notices.filter(
@@ -405,6 +549,8 @@ export default function Page() {
           onDelayToggle={() => setState((prev) => ({ ...prev, delayMinutes: prev.delayMinutes ? 0 : 15 }))}
           onRecoverSlot={handleRecoverMissedSlot}
           lastEtaChangeNotice={lastEtaChangeNotice}
+          language={currentLanguage}
+          onLanguageChange={setCurrentLanguage}
         />
       )
     }
@@ -428,21 +574,69 @@ export default function Page() {
       <AdminDashboard
         adminUser={authUser}
         adminToken={authToken}
-        isSocketConnected={isSocketConnected}
+        isSocketConnected={socketStatus === 'Live'}
       />
     )
   }
 
+  // Helper for Socket.IO Status Badge
+  const getSocketBadge = () => {
+    switch (socketStatus) {
+      case 'Live':
+        return (
+          <span className="socket-badge live">
+            <span className="socket-indicator-dot live" /> Live
+          </span>
+        )
+      case 'Reconnecting…':
+        return (
+          <span className="socket-badge reconnecting">
+            <span className="socket-indicator-dot reconnecting" /> Reconnecting…
+          </span>
+        )
+      case 'Connecting…':
+        return (
+          <span className="socket-badge connecting">
+            <span className="socket-indicator-dot connecting" /> Connecting…
+          </span>
+        )
+      case 'Offline':
+      default:
+        return (
+          <span className="socket-badge offline">
+            <span className="socket-indicator-dot offline" /> Offline
+          </span>
+        )
+    }
+  }
+
   return (
     <div className="app-shell">
+      {/* Mobile Menu Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Primary Navigation Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
           <div className="brand-mark"><Sprout size={18} /></div>
           <div>
             <b>Kisan-Mitra</b>
             <span>Intelligent Queue</span>
           </div>
+          <button
+            type="button"
+            className="mobile-close-btn"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Authenticated User & Role Indicator Badge */}
@@ -454,7 +648,7 @@ export default function Page() {
           <span className="sidebar-user-detail">
             {activeRole === 'officer'
               ? 'Nashik Procurement Centre'
-              : authUser?.phone || 'Verified Account'}
+              : maskPhoneNumber(authUser?.phone || '9876543210')}
           </span>
 
           {/* Secure Logout / Switch Account Button */}
@@ -462,9 +656,9 @@ export default function Page() {
             type="button"
             id="sidebar-logout-btn"
             className="sidebar-logout-btn"
-            onClick={handleLogout}
+            onClick={handlePromptLogout}
           >
-            <LogOut size={12} /> Switch Account / Log Out
+            <LogOut size={12} /> Log out / Change account
           </button>
         </div>
 
@@ -476,6 +670,7 @@ export default function Page() {
               onClick={() => {
                 setPage(label)
                 setShowNotices(label === 'Notifications')
+                setMobileMenuOpen(false)
               }}
             >
               {label === 'Dashboard' || label === 'Control Room' || label === 'Network Overview' ? (
@@ -509,24 +704,40 @@ export default function Page() {
       {/* Main Content Area */}
       <main className="main">
         <header className="topbar">
-          <div className="breadcrumb">
-            <span>Kisan-Mitra</span>
-            <b>/ {title}</b>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              className="mobile-hamburger-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="breadcrumb">
+              <span>Kisan-Mitra</span>
+              <b>/ {title}</b>
+            </div>
           </div>
 
           <div className="top-actions">
             <div className="location">
               <MapPin size={14} /> {state.centre}
-              {isSocketConnected ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '8px', fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} /> Socket.IO Live
-                </span>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '8px', fontSize: '11px', color: '#d97706', fontWeight: 600 }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} /> Connecting
-                </span>
-              )}
+              {getSocketBadge()}
             </div>
+
+            {/* Language Selector in Topbar */}
+            <label className="language-select-label-mini" aria-label="Language selector">
+              <Globe size={13} />
+              <select
+                value={currentLanguage}
+                onChange={(e) => setCurrentLanguage(e.target.value as Language)}
+                className="lang-dropdown-mini"
+              >
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+                <option value="mr">मराठी</option>
+              </select>
+            </label>
 
             <button
               className="notification-button"
@@ -537,7 +748,11 @@ export default function Page() {
               {relevantNotices.length > 0 && <i />}
             </button>
 
-            <button className="user-menu" onClick={handleLogout} title="Click to log out / switch role">
+            <button
+              className="user-menu"
+              onClick={handlePromptLogout}
+              title="Click to log out / change account"
+            >
               <span className="avatar">
                 {authUser?.name ? authUser.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'KM'}
               </span>
@@ -549,8 +764,84 @@ export default function Page() {
           </div>
         </header>
 
+        {/* Offline / Reconnecting Visual Banner */}
+        {socketStatus !== 'Live' && (
+          <div
+            className={`connection-banner ${socketStatus === 'Reconnecting…' ? 'reconnecting' : 'offline'}`}
+            style={{
+              background: socketStatus === 'Reconnecting…' ? '#fffbeb' : '#fef2f2',
+              color: socketStatus === 'Reconnecting…' ? '#92400e' : '#991b1b',
+              borderBottom: '1px solid',
+              borderColor: socketStatus === 'Reconnecting…' ? '#fde68a' : '#fecaca',
+              padding: '10px 20px',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontWeight: 500,
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className={`socket-indicator-dot ${socketStatus === 'Reconnecting…' ? 'reconnecting' : 'offline'}`} />
+              {socketStatus === 'Reconnecting…'
+                ? 'Reconnecting to live queue feed… Updates may be delayed.'
+                : 'Real-time connection offline. Displaying cached authoritative queue data.'}
+            </span>
+            {socketStatus === 'Offline' && (
+              <button
+                className="button secondary small"
+                onClick={() => {
+                  if (socketRef.current) {
+                    socketRef.current.connect()
+                  }
+                }}
+                style={{ padding: '4px 10px', fontSize: '12px' }}
+              >
+                Retry connection
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="page-content">{renderMainContent()}</div>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title">
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <div className="modal-icon-wrap warning">
+                <LogOut size={20} />
+              </div>
+              <div>
+                <h3 id="logout-dialog-title">Confirm Logout</h3>
+                <p>Are you sure you want to log out?</p>
+              </div>
+            </div>
+            <p className="modal-body-text">
+              Your active session and realtime queue notifications will be ended. You will be redirected to the role selection portal.
+            </p>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="button outline"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button primary"
+                onClick={handleConfirmLogout}
+                id="confirm-logout-btn"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -50,10 +50,11 @@ export default function OfficerDashboard({
   const fetchLiveCentreAndQueue = useCallback(async () => {
     if (!assignedCentreId) return
     setLoading(true)
+    const authHeaders: Record<string, string> = officerToken ? { Authorization: `Bearer ${officerToken}` } : {}
     try {
       const [cRes, qRes] = await Promise.all([
-        fetch(`/api/centres/${assignedCentreId}`),
-        fetch(`/api/queue/${assignedCentreId}`),
+        fetch(`/api/centres/${assignedCentreId}`, { headers: authHeaders }),
+        fetch(`/api/queue/${assignedCentreId}`, { headers: authHeaders }),
       ])
 
       if (cRes.ok) {
