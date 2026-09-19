@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,13 +11,18 @@ import {
   EyeOff,
   User,
   CheckCircle2,
-  Info,
   Globe,
 } from 'lucide-react'
 import { SelectedRole } from '../role-selection/RoleSelectionScreen'
 import { translations, Language } from '@/lib/i18n'
 
 type AuthMode = 'PASSWORD' | 'REGISTER'
+
+const demoCredentials: Record<SelectedRole, { phone: string; password: string }> = {
+  farmer: { phone: '9876543210', password: 'farmer123' },
+  officer: { phone: '9876543211', password: 'officer123' },
+  admin: { phone: '9876543212', password: 'admin123' },
+}
 
 interface RoleLoginScreenProps {
   selectedRole: SelectedRole
@@ -37,8 +42,8 @@ export default function RoleLoginScreen({
   const [mode, setMode] = useState<AuthMode>('PASSWORD')
 
   // Password Login States
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
+  const [identifier, setIdentifier] = useState(() => demoCredentials[selectedRole].phone)
+  const [password, setPassword] = useState(() => demoCredentials[selectedRole].password)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -54,6 +59,13 @@ export default function RoleLoginScreen({
   const [regSuccess, setRegSuccess] = useState<string | null>(null)
 
   const t = translations[currentLanguage]
+
+  useEffect(() => {
+    setIdentifier(demoCredentials[selectedRole].phone)
+    setPassword(demoCredentials[selectedRole].password)
+    setErrorMessage(null)
+    setRoleMismatch(false)
+  }, [selectedRole])
 
   // Configuration per selected role context
   const roleConfig = {
@@ -93,21 +105,6 @@ export default function RoleLoginScreen({
       demoPass: 'admin123',
     },
   }[selectedRole]
-
-  // Demo Access Fill (for evaluators/judges without displaying plain passwords)
-  const demoCredentials = {
-    farmer: { phone: '9876543210', password: 'farmer123' },
-    officer: { phone: '9876543211', password: 'officer123' },
-    admin: { phone: '9876543212', password: 'admin123' },
-  }
-
-  const handleDemoAccess = (role: SelectedRole = selectedRole) => {
-    const credentials = demoCredentials[role]
-    setIdentifier(credentials.phone)
-    setPassword(credentials.password)
-    setErrorMessage(null)
-    setRoleMismatch(false)
-  }
 
   // Handle Real Password Login with Authoritative RBAC Check
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -415,24 +412,7 @@ export default function RoleLoginScreen({
               </div>
             )}
 
-            {/* Quick Fill Credentials for evaluators */}
-            <div className="demo-access-bar" style={{ border: '1px solid #b3dedb', background: '#eef7f7', padding: '10px', borderRadius: '6px' }}>
-              <strong style={{ display: 'block', color: '#12304a', fontSize: '11px', marginBottom: '7px' }}>Quick Fill Credentials</strong>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {(['farmer', 'officer', 'admin'] as SelectedRole[]).map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    className="demo-access-btn"
-                    onClick={() => handleDemoAccess(role)}
-                    title={`Fill ${role} demo credentials`}
-                  >
-                    <Info size={13} /> Fill {role === 'farmer' ? 'Farmer' : role === 'officer' ? 'Officer' : 'Admin'} Demo
-                  </button>
-                ))}
-              </div>
-              <small style={{ display: 'block', color: '#607282', marginTop: '7px' }}>Fields are filled only. Click Login to authenticate.</small>
-            </div>
+
           </form>
         )}
 

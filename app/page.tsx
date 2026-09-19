@@ -366,6 +366,19 @@ export default function Page() {
     setShowNotices(false)
   }
 
+  const handleHomeNavigation = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect()
+      socketRef.current = null
+    }
+    setAuthToken(null)
+    setAuthUser(null)
+    setAuthStatus('ROLE_SELECTION')
+    setPage('Dashboard')
+    setShowNotices(false)
+    setMobileMenuOpen(true)
+  }
+
   // Step 3: Trigger Logout Confirmation
   const handlePromptLogout = () => {
     setShowLogoutModal(true)
@@ -701,11 +714,10 @@ export default function Page() {
     <div className="app-shell">
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
-        <div
-          className="mobile-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
+  <div
+  className="mobile-backdrop"
+  aria-hidden="true"
+  />
       )}
 
       {/* Primary Navigation Sidebar */}
@@ -775,9 +787,8 @@ export default function Page() {
                 key={label}
                 className={title === label ? 'active' : ''}
                 onClick={() => {
-                  setPage(label)
-                  setShowNotices(label === 'Notifications')
-                  setMobileMenuOpen(false)
+  setPage(label)
+  setShowNotices(label === 'Notifications')
                 }}
               >
                 {label === 'Dashboard' || label === 'Control Room' || label === 'Network Overview' ? (
@@ -840,8 +851,8 @@ export default function Page() {
             <button
               type="button"
               className="notification-button"
-              onClick={() => { setPage('Dashboard'); setShowNotices(false); }}
-              aria-label="Home"
+  onClick={handleHomeNavigation}
+  aria-label="Home"
               title="Home"
             >
               <Home size={18} />
@@ -873,7 +884,7 @@ export default function Page() {
             <button
               className="user-menu"
               onClick={handlePromptLogout}
-              title="Click to log out / change account"
+              title="Log out"
             >
               <span className="avatar">
                 {authUser?.name ? authUser.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'KM'}

@@ -1579,33 +1579,6 @@ button { cursor: pointer; }
   gap: 10px;
 }
 
-/* Demo Access Button in Login Card */
-.demo-access-bar {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px dashed #e2e8f0;
-  text-align: center;
-}
-.demo-access-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 5px;
-  color: #334155;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.demo-access-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #0f172a;
-}
-
 /* Login Top Bar with Language Selector */
 .login-top-bar {
   display: flex;
