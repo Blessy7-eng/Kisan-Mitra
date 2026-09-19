@@ -578,8 +578,8 @@ export default function Page() {
         <div className="notification-panel">
           <div className="panel-heading">
             <div>
-              <div className="eyebrow">SYSTEM NOTIFICATIONS</div>
-              <h2>Real-time Activity Stream</h2>
+  <div className="eyebrow">{t.shell.systemNotices}</div>
+  <h2>{t.shell.notificationsTitle}</h2>
             </div>
             <button className="icon-button" onClick={() => { setShowNotices(false); setPage('Dashboard'); }}>
               <X size={17} />
@@ -681,33 +681,20 @@ export default function Page() {
 
   // Helper for Socket.IO Status Badge
   const getSocketBadge = () => {
-    switch (socketStatus) {
-      case 'Live':
-        return (
-          <span className="socket-badge live">
-            <span className="socket-indicator-dot live" /> Live
-          </span>
-        )
-      case 'Reconnecting…':
-        return (
-          <span className="socket-badge reconnecting">
-            <span className="socket-indicator-dot reconnecting" /> Reconnecting…
-          </span>
-        )
-      case 'Connecting…':
-        return (
-          <span className="socket-badge connecting">
-            <span className="socket-indicator-dot connecting" /> Connecting…
-          </span>
-        )
-      case 'Offline':
-      default:
-        return (
-          <span className="socket-badge offline">
-            <span className="socket-indicator-dot offline" /> Offline
-          </span>
-        )
+    const statusLabels = {
+      Live: t.shell.live,
+      'Reconnecting…': t.shell.reconnecting,
+      'Connecting…': t.shell.connecting,
+      Offline: t.shell.offline,
     }
+    const label = statusLabels[socketStatus] || t.shell.offline
+    const statusClass = socketStatus === 'Live' ? 'live' : socketStatus === 'Offline' ? 'offline' : socketStatus === 'Connecting…' ? 'connecting' : 'reconnecting'
+
+    return (
+      <span className={`socket-badge ${statusClass}`}>
+        <span className={`socket-indicator-dot ${statusClass}`} /> {label}
+      </span>
+    )
   }
 
   return (
@@ -726,7 +713,7 @@ export default function Page() {
           <div className="brand-mark"><Sprout size={18} /></div>
           <div>
             <b>Kisan-Mitra</b>
-            <span>Intelligent Queue</span>
+            <span>{t.shell.portalTitle}</span>
           </div>
           <button
             type="button"
@@ -771,15 +758,15 @@ export default function Page() {
               else if (label === 'Live Queue') translatedLabel = t.nav.officer.liveQueue
               else if (label === 'Centre Conditions') translatedLabel = t.nav.officer.centreConditions
               else if (label === 'Smart Queue Engine') translatedLabel = t.nav.officer.smartQueueEngine
-              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
-              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+              else if (label === 'Notifications') translatedLabel = t.nav.officer.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.officer.profile
             } else {
               if (label === 'Network Overview') translatedLabel = t.nav.admin.networkOverview
               else if (label === 'Centre Load & Fleet') translatedLabel = t.nav.admin.centreLoadFleet
               else if (label === 'Centre Inspector') translatedLabel = t.nav.admin.centreInspector
               else if (label === 'System Health') translatedLabel = t.nav.admin.systemHealth
-              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
-              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+              else if (label === 'Notifications') translatedLabel = t.nav.admin.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.admin.profile
             }
 
             return (
@@ -813,7 +800,7 @@ export default function Page() {
 
           <button type="button" className="sidebar-logout" onClick={handlePromptLogout}>
             <LogOut size={17} />
-            <span>Logout</span>
+            <span>{t.shell.logoutBtn}</span>
           </button>
 
           <div className="sidebar-bottom">
