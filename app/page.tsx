@@ -809,16 +809,17 @@ export default function Page() {
               </button>
             )
           })}
-        </nav>
+          </nav>
+
+          <button type="button" className="sidebar-logout" onClick={handlePromptLogout}>
+            <LogOut size={17} />
+            <span>Logout</span>
+          </button>
 
           <div className="sidebar-bottom">
           <button onClick={() => { setPage('Dashboard'); setShowNotices(false); }}>
             <RefreshCw size={17} />
             <span>{currentLanguage === 'mr' ? 'रांग समक्रमित करा' : currentLanguage === 'hi' ? 'कतार सिंक करें' : 'Sync Queue State'}</span>
-          </button>
-          <button type="button" onClick={handlePromptLogout}>
-            <LogOut size={17} />
-            <span>Logout</span>
           </button>
           <div className="version">Kisan-Mitra Portal v2.1</div>
         </div>
