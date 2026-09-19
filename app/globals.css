@@ -1678,8 +1678,10 @@ button { cursor: pointer; }
   cursor: pointer;
   padding: 6px;
 }
-.mobile-close-btn {
-  display: none;
+  .sidebar-closed { display: none; }
+  .sidebar-closed + .main .mobile-hamburger-btn { display: inline-flex; }
+  .mobile-close-btn {
+  display: inline-flex;
   background: transparent;
   border: 0;
   color: #ffffff;

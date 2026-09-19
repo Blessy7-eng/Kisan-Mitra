@@ -95,9 +95,16 @@ export default function RoleLoginScreen({
   }[selectedRole]
 
   // Demo Access Fill (for evaluators/judges without displaying plain passwords)
-  const handleDemoAccess = () => {
-    setIdentifier(roleConfig.demoPhone)
-    setPassword(roleConfig.demoPass)
+  const demoCredentials = {
+    farmer: { phone: '9876543210', password: 'farmer123' },
+    officer: { phone: '9876543211', password: 'officer123' },
+    admin: { phone: '9876543212', password: 'admin123' },
+  }
+
+  const handleDemoAccess = (role: SelectedRole = selectedRole) => {
+    const credentials = demoCredentials[role]
+    setIdentifier(credentials.phone)
+    setPassword(credentials.password)
     setErrorMessage(null)
     setRoleMismatch(false)
   }
@@ -408,16 +415,23 @@ export default function RoleLoginScreen({
               </div>
             )}
 
-            {/* Clean Demo Access for Evaluators (replaces Developer/Test UI) */}
-            <div className="demo-access-bar">
-              <button
-                type="button"
-                className="demo-access-btn"
-                onClick={handleDemoAccess}
-                title="Fill authorized credentials for testing"
-              >
-                <Info size={13} /> {t.login.demoAccessBtn}
-              </button>
+            {/* Quick Fill Credentials for evaluators */}
+            <div className="demo-access-bar" style={{ border: '1px solid #b3dedb', background: '#eef7f7', padding: '10px', borderRadius: '6px' }}>
+              <strong style={{ display: 'block', color: '#12304a', fontSize: '11px', marginBottom: '7px' }}>Quick Fill Credentials</strong>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {(['farmer', 'officer', 'admin'] as SelectedRole[]).map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    className="demo-access-btn"
+                    onClick={() => handleDemoAccess(role)}
+                    title={`Fill ${role} demo credentials`}
+                  >
+                    <Info size={13} /> Fill {role === 'farmer' ? 'Farmer' : role === 'officer' ? 'Officer' : 'Admin'} Demo
+                  </button>
+                ))}
+              </div>
+              <small style={{ display: 'block', color: '#607282', marginTop: '7px' }}>Fields are filled only. Click Login to authenticate.</small>
             </div>
           </form>
         )}

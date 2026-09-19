@@ -23,6 +23,7 @@ import {
   Zap,
   Globe,
   Menu,
+  Home,
 } from 'lucide-react'
 import RoleSelectionScreen, { SelectedRole } from '@/components/role-selection/RoleSelectionScreen'
 import RoleLoginScreen from '@/components/auth/RoleLoginScreen'
@@ -104,7 +105,7 @@ export default function Page() {
   // In-App Navigation State
   const [page, setPage] = useState<string>('Dashboard')
   const [showNotices, setShowNotices] = useState<boolean>(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(true)
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false)
 
   // Real-time Queue State
@@ -584,6 +585,24 @@ export default function Page() {
       )
     }
 
+    if (page === 'Profile') {
+      return (
+        <section className="panel" aria-labelledby="profile-heading">
+          <div className="panel-heading">
+            <div>
+              <div className="eyebrow">ACCOUNT</div>
+              <h2 id="profile-heading">Profile</h2>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: '12px', marginTop: '18px', maxWidth: '520px' }}>
+            <div><small>Name</small><strong style={{ display: 'block', color: '#12304a' }}>{authUser?.name || 'Authenticated User'}</strong></div>
+            <div><small>Mobile</small><strong style={{ display: 'block', color: '#12304a' }}>{authUser?.phone || 'Not available'}</strong></div>
+            <div><small>Role</small><strong style={{ display: 'block', color: '#12304a' }}>{activeRole === 'farmer' ? 'Farmer' : activeRole === 'officer' ? 'Procurement Officer' : 'Administrator'}</strong></div>
+          </div>
+        </section>
+      )
+    }
+
     if (activeRole === 'farmer') {
       if (page === 'Book a slot') {
         return (
@@ -690,7 +709,7 @@ export default function Page() {
       )}
 
       {/* Primary Navigation Sidebar */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+      <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-open mobile-open' : 'sidebar-closed'}`}>
         <div className="brand">
           <div className="brand-mark"><Sprout size={18} /></div>
           <div>
@@ -723,15 +742,6 @@ export default function Page() {
               : maskPhoneNumber(authUser?.phone || '9876543210')}
           </span>
 
-          {/* Secure Logout / Switch Account Button */}
-          <button
-            type="button"
-            id="sidebar-logout-btn"
-            className="sidebar-logout-btn"
-            onClick={handlePromptLogout}
-          >
-            <LogOut size={12} /> {t.logout.buttonText}
-          </button>
         </div>
 
         <nav>
@@ -790,10 +800,14 @@ export default function Page() {
           })}
         </nav>
 
-        <div className="sidebar-bottom">
+          <div className="sidebar-bottom">
           <button onClick={() => { setPage('Dashboard'); setShowNotices(false); }}>
             <RefreshCw size={17} />
             <span>{currentLanguage === 'mr' ? 'रांग समक्रमित करा' : currentLanguage === 'hi' ? 'कतार सिंक करें' : 'Sync Queue State'}</span>
+          </button>
+          <button type="button" onClick={handlePromptLogout}>
+            <LogOut size={17} />
+            <span>Logout</span>
           </button>
           <div className="version">Kisan-Mitra Portal v2.1</div>
         </div>
@@ -822,6 +836,16 @@ export default function Page() {
               <MapPin size={14} /> {state.centre}
               {getSocketBadge()}
             </div>
+
+            <button
+              type="button"
+              className="notification-button"
+              onClick={() => { setPage('Dashboard'); setShowNotices(false); }}
+              aria-label="Home"
+              title="Home"
+            >
+              <Home size={18} />
+            </button>
 
             {/* Language Selector in Topbar */}
             <label className="language-select-label-mini" aria-label="Language selector">
