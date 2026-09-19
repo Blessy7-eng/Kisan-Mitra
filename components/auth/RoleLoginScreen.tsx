@@ -12,6 +12,7 @@ import {
   User,
   CheckCircle2,
   Globe,
+  Info,
 } from 'lucide-react'
 import { SelectedRole } from '../role-selection/RoleSelectionScreen'
 import { translations, Language } from '@/lib/i18n'
