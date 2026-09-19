@@ -55,19 +55,7 @@ button { cursor: pointer; }
 .notification-button, .icon-button { border: 0; background: transparent; color: #637079; position: relative; padding: 4px; }.notification-button i { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #c88d52; right: 2px; top: 1px; border: 1px solid #fff; }
 .home-nav-button { border: 0; background: transparent; color: #000000 !important; position: relative; padding: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: opacity 0.15s ease, transform 0.15s ease; }
 .home-nav-button:hover { opacity: 0.75; transform: translateY(-1px); }
-.home-nav-button > svg,
-.home-icon-black {
-  color: #000000 !important;
-  stroke: #000000 !important;
-}
-
-.home-fontawesome-icon {
-  font-size: 38px;
-  color: #000000;
-  line-height: 1;
-  display: inline-block;
-}
-
+.home-nav-button svg, .home-icon-black { color: #000000 !important; stroke: #000000 !important; }
 .user-menu { display: flex; gap: 9px; align-items: center; border: 0; background: transparent; text-align: left; color: #17212b; }.user-menu b, .user-menu small { display: block; }.user-menu b { font-size: 12px; }.user-menu small { color: #8a969d; font-size: 10px; margin-top: 2px; }.avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: #2f6f73; font-size: 10px; font-weight: 700; }
 .notification-popover { position: absolute; z-index: 10; top: 58px; right: 136px; background: #fff; width: 320px; border: 1px solid #dce4e8; box-shadow: 0 12px 30px rgba(11,34,57,.14); border-radius: 7px; padding: 15px; }.popover-head { display: flex; justify-content: space-between; border-bottom: 1px solid #edf1f2; padding-bottom: 12px; }.popover-head span { color: #2f6f73; font-size: 11px; }.notice { display: flex; gap: 10px; padding: 13px 0; border-bottom: 1px solid #edf1f2; color: #2f6f73; }.notice.warning { color: #a87135; }.notice span { color: #34434d; }.notice small { display: block; color: #8a969d; margin-top: 4px; }
 .page-content { max-width: 1440px; margin: 0 auto; padding: 31px 36px 56px; }
