@@ -838,12 +838,13 @@ export default function Page() {
 
             <button
               type="button"
-              className="notification-button"
-  onClick={handleHomeNavigation}
-  aria-label="Home"
+              className="home-nav-button"
+              onClick={handleHomeNavigation}
+              aria-label="Home"
               title="Home"
+              id="topbar-home-btn"
             >
-              <Home size={18} />
+              <Home size={18} color="#000000" stroke="#000000" className="home-icon-black text-black" />
             </button>
 
             {/* Language Selector in Topbar */}
@@ -872,7 +873,7 @@ export default function Page() {
             <button
               className="user-menu"
               onClick={handlePromptLogout}
-              title="Log out"
+              title="Logout"
             >
               <span className="avatar">
                 {authUser?.name ? authUser.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'KM'}
