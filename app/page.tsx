@@ -844,7 +844,7 @@ export default function Page() {
               title="Home"
               id="topbar-home-btn"
             >
-              <i className="fa-solid fa-circle-house home-fontawesome-icon"></i>
+              <i className="fa-solid fa-circle-house home-fontawesome-icon" />
             </button>
 
             {/* Language Selector in Topbar */}
