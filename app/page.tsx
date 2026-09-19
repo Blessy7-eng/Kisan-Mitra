@@ -844,9 +844,7 @@ export default function Page() {
               title="Home"
               id="topbar-home-btn"
             >
-              <span className="home-icon-circle">
-                <Home size={17} color="#ffffff" strokeWidth={2.5} />
-              </span>
+              <i className="fa-solid fa-circle-house home-fontawesome-icon"></i>
             </button>
 
             {/* Language Selector in Topbar */}
