@@ -1380,6 +1380,9 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 600px) {
+  .officer-grid {
+  grid-template-columns: minmax(0, 1fr);
+  }
   .queue-table-panel {
   min-width: 0;
   overflow: hidden;
@@ -1395,20 +1398,48 @@ button { cursor: pointer; }
   }
   .queue-table-panel .panel-heading > div:last-child {
   display: grid !important;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   width: 100%;
   gap: 6px !important;
   }
   .queue-table-panel .panel-heading .button {
+  box-sizing: border-box;
   min-width: 0;
   width: 100%;
   height: auto;
-  min-height: 34px;
-  padding: 6px 7px;
+  min-height: 38px;
+  padding: 6px 5px;
+  font-size: 10px;
+  font-weight: 700;
   white-space: normal;
   text-align: center;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  word-break: normal;
+  }
+  .queue-table-panel .panel-heading .button.dark {
+  color: #fff;
+  }
+  .queue-table-panel .panel-heading .button svg {
+  flex: 0 0 auto;
+  }
+  .queue-table-panel .table-row > span:last-child {
+  display: flex;
+  min-width: 0;
+  }
+  .queue-table-panel .table-row .button {
+  box-sizing: border-box;
+  color: #12304a;
+  font-size: 10px;
+  font-weight: 700;
+  }
+  .queue-table-panel .table-row .button.primary {
+  color: #fff;
+  }
+  .queue-table-panel .condition-actions button {
+  box-sizing: border-box;
+  color: #2f6f73;
+  font-weight: 600;
   }
   .queue-table-panel .data-table {
   min-width: 0;
