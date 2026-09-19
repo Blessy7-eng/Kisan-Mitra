@@ -1380,6 +1380,84 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 600px) {
+  .queue-table-panel {
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px 12px;
+  }
+  .queue-table-panel .panel-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+  }
+  .queue-table-panel .panel-heading > div:first-child {
+  min-width: 0;
+  flex: 1 1 100%;
+  }
+  .queue-table-panel .panel-heading > div:last-child {
+  display: grid !important;
+  grid-template-columns: 1fr 1.35fr;
+  width: 100%;
+  gap: 6px !important;
+  }
+  .queue-table-panel .panel-heading .button {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  min-height: 34px;
+  padding: 6px 7px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  }
+  .queue-table-panel .data-table {
+  min-width: 0;
+  overflow: hidden;
+  }
+  .queue-table-panel .table-head,
+  .queue-table-panel .table-row {
+  grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr) 18px 58px;
+  gap: 4px;
+  }
+  .queue-table-panel .table-head {
+  min-height: 38px;
+  line-height: 1.2;
+  }
+  .queue-table-panel .table-row {
+  min-height: 58px;
+  font-size: 10px;
+  }
+  .queue-table-panel .table-row > span,
+  .queue-table-panel .table-head > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  }
+  .queue-table-panel .table-row .status-pill {
+  max-width: 100%;
+  padding: 0 4px;
+  white-space: normal;
+  height: auto;
+  min-height: 21px;
+  text-align: center;
+  line-height: 1.15;
+  }
+  .queue-table-panel .table-row .button {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 32px;
+  padding: 5px 4px;
+  white-space: normal;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  }
+  .queue-table-panel .condition-actions button {
+  min-height: 40px;
+  padding: 9px 10px;
+  line-height: 1.25;
+  white-space: normal;
+  }
   .hero-section {
     padding: 16px 12px 24px;
   }
