@@ -23,6 +23,7 @@ import {
   Zap,
   Globe,
   Menu,
+  Home,
 } from 'lucide-react'
 import RoleSelectionScreen, { SelectedRole } from '@/components/role-selection/RoleSelectionScreen'
 import RoleLoginScreen from '@/components/auth/RoleLoginScreen'
@@ -104,7 +105,7 @@ export default function Page() {
   // In-App Navigation State
   const [page, setPage] = useState<string>('Dashboard')
   const [showNotices, setShowNotices] = useState<boolean>(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(true)
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false)
 
   // Real-time Queue State
@@ -365,6 +366,19 @@ export default function Page() {
     setShowNotices(false)
   }
 
+  const handleHomeNavigation = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect()
+      socketRef.current = null
+    }
+    setAuthToken(null)
+    setAuthUser(null)
+    setAuthStatus('ROLE_SELECTION')
+    setPage('Dashboard')
+    setShowNotices(false)
+    setMobileMenuOpen(true)
+  }
+
   // Step 3: Trigger Logout Confirmation
   const handlePromptLogout = () => {
     setShowLogoutModal(true)
@@ -564,8 +578,8 @@ export default function Page() {
         <div className="notification-panel">
           <div className="panel-heading">
             <div>
-              <div className="eyebrow">SYSTEM NOTIFICATIONS</div>
-              <h2>Real-time Activity Stream</h2>
+  <div className="eyebrow">{t.shell.systemNotices}</div>
+  <h2>{t.shell.notificationsTitle}</h2>
             </div>
             <button className="icon-button" onClick={() => { setShowNotices(false); setPage('Dashboard'); }}>
               <X size={17} />
@@ -581,6 +595,24 @@ export default function Page() {
             </div>
           ))}
         </div>
+      )
+    }
+
+    if (page === 'Profile') {
+      return (
+        <section className="panel" aria-labelledby="profile-heading">
+          <div className="panel-heading">
+            <div>
+              <div className="eyebrow">ACCOUNT</div>
+              <h2 id="profile-heading">Profile</h2>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: '12px', marginTop: '18px', maxWidth: '520px' }}>
+            <div><small>Name</small><strong style={{ display: 'block', color: '#12304a' }}>{authUser?.name || 'Authenticated User'}</strong></div>
+            <div><small>Mobile</small><strong style={{ display: 'block', color: '#12304a' }}>{authUser?.phone || 'Not available'}</strong></div>
+            <div><small>Role</small><strong style={{ display: 'block', color: '#12304a' }}>{activeRole === 'farmer' ? 'Farmer' : activeRole === 'officer' ? 'Procurement Officer' : 'Administrator'}</strong></div>
+          </div>
+        </section>
       )
     }
 
@@ -649,53 +681,39 @@ export default function Page() {
 
   // Helper for Socket.IO Status Badge
   const getSocketBadge = () => {
-    switch (socketStatus) {
-      case 'Live':
-        return (
-          <span className="socket-badge live">
-            <span className="socket-indicator-dot live" /> Live
-          </span>
-        )
-      case 'Reconnecting…':
-        return (
-          <span className="socket-badge reconnecting">
-            <span className="socket-indicator-dot reconnecting" /> Reconnecting…
-          </span>
-        )
-      case 'Connecting…':
-        return (
-          <span className="socket-badge connecting">
-            <span className="socket-indicator-dot connecting" /> Connecting…
-          </span>
-        )
-      case 'Offline':
-      default:
-        return (
-          <span className="socket-badge offline">
-            <span className="socket-indicator-dot offline" /> Offline
-          </span>
-        )
+    const statusLabels = {
+      Live: t.shell.live,
+      'Reconnecting…': t.shell.reconnecting,
+      'Connecting…': t.shell.connecting,
+      Offline: t.shell.offline,
     }
+    const label = statusLabels[socketStatus] || t.shell.offline
+    const statusClass = socketStatus === 'Live' ? 'live' : socketStatus === 'Offline' ? 'offline' : socketStatus === 'Connecting…' ? 'connecting' : 'reconnecting'
+
+    return (
+      <span className={`socket-badge ${statusClass}`}>
+        <span className={`socket-indicator-dot ${statusClass}`} /> {label}
+      </span>
+    )
   }
 
   return (
     <div className="app-shell">
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
-        <div
-          className="mobile-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
+  <div
+  className="mobile-backdrop"
+  aria-hidden="true"
+  />
       )}
 
       {/* Primary Navigation Sidebar */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+      <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-open mobile-open' : 'sidebar-closed'}`}>
         <div className="brand">
           <div className="brand-mark"><Sprout size={18} /></div>
           <div>
             <b>Kisan-Mitra</b>
-            <span>Intelligent Queue</span>
+            <span>{t.shell.portalTitle}</span>
           </div>
           <button
             type="button"
@@ -723,15 +741,6 @@ export default function Page() {
               : maskPhoneNumber(authUser?.phone || '9876543210')}
           </span>
 
-          {/* Secure Logout / Switch Account Button */}
-          <button
-            type="button"
-            id="sidebar-logout-btn"
-            className="sidebar-logout-btn"
-            onClick={handlePromptLogout}
-          >
-            <LogOut size={12} /> {t.logout.buttonText}
-          </button>
         </div>
 
         <nav>
@@ -749,15 +758,15 @@ export default function Page() {
               else if (label === 'Live Queue') translatedLabel = t.nav.officer.liveQueue
               else if (label === 'Centre Conditions') translatedLabel = t.nav.officer.centreConditions
               else if (label === 'Smart Queue Engine') translatedLabel = t.nav.officer.smartQueueEngine
-              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
-              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+              else if (label === 'Notifications') translatedLabel = t.nav.officer.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.officer.profile
             } else {
               if (label === 'Network Overview') translatedLabel = t.nav.admin.networkOverview
               else if (label === 'Centre Load & Fleet') translatedLabel = t.nav.admin.centreLoadFleet
               else if (label === 'Centre Inspector') translatedLabel = t.nav.admin.centreInspector
               else if (label === 'System Health') translatedLabel = t.nav.admin.systemHealth
-              else if (label === 'Notifications') translatedLabel = t.nav.farmer.notifications
-              else if (label === 'Profile') translatedLabel = t.nav.farmer.profile
+              else if (label === 'Notifications') translatedLabel = t.nav.admin.notifications
+              else if (label === 'Profile') translatedLabel = t.nav.admin.profile
             }
 
             return (
@@ -765,9 +774,8 @@ export default function Page() {
                 key={label}
                 className={title === label ? 'active' : ''}
                 onClick={() => {
-                  setPage(label)
-                  setShowNotices(label === 'Notifications')
-                  setMobileMenuOpen(false)
+  setPage(label)
+  setShowNotices(label === 'Notifications')
                 }}
               >
                 {label === 'Dashboard' || label === 'Control Room' || label === 'Network Overview' ? (
@@ -788,9 +796,14 @@ export default function Page() {
               </button>
             )
           })}
-        </nav>
+          </nav>
 
-        <div className="sidebar-bottom">
+          <button type="button" className="sidebar-logout" onClick={handlePromptLogout}>
+            <LogOut size={17} />
+            <span>{t.shell.logoutBtn}</span>
+          </button>
+
+          <div className="sidebar-bottom">
           <button onClick={() => { setPage('Dashboard'); setShowNotices(false); }}>
             <RefreshCw size={17} />
             <span>{currentLanguage === 'mr' ? 'रांग समक्रमित करा' : currentLanguage === 'hi' ? 'कतार सिंक करें' : 'Sync Queue State'}</span>
@@ -823,6 +836,16 @@ export default function Page() {
               {getSocketBadge()}
             </div>
 
+            <button
+              type="button"
+              className="notification-button"
+  onClick={handleHomeNavigation}
+  aria-label="Home"
+              title="Home"
+            >
+              <Home size={18} />
+            </button>
+
             {/* Language Selector in Topbar */}
             <label className="language-select-label-mini" aria-label="Language selector">
               <Globe size={13} />
@@ -849,7 +872,7 @@ export default function Page() {
             <button
               className="user-menu"
               onClick={handlePromptLogout}
-              title="Click to log out / change account"
+              title="Log out"
             >
               <span className="avatar">
                 {authUser?.name ? authUser.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'KM'}

@@ -14,7 +14,6 @@ import {
   Users,
   Zap,
   Radio,
-  Globe,
 } from 'lucide-react'
 import { calculateCentreLoad, calculateETA, getAlternativeCentre, getCentreStatus } from '@/lib/smartQueueEngine'
 import { translations, Language } from '@/lib/i18n'
@@ -354,16 +353,6 @@ export default function OfficerDashboard({
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {onLanguageChange && (
-            <label className="language-select">
-              <Globe size={13} />
-              <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
-                <option value="en">English</option>
-                <option value="hi">हिन्दी</option>
-                <option value="mr">मराठी</option>
-              </select>
-            </label>
-          )}
           <button className="button outline small" onClick={fetchLiveCentreAndQueue} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> {o.refreshQueue}
           </button>
@@ -402,7 +391,7 @@ export default function OfficerDashboard({
         <div className="metric-card">
           <div className="metric-top"><span>{o.expectedWait.toUpperCase()}</span><Clock3 size={17} /></div>
           <strong>{expectedWaitMinutes} {language === 'mr' ? 'मि.' : language === 'hi' ? 'मिनट' : 'min'}</strong>
-          <small>{language === 'mr' ? 'शेवटचे रांग स्थान' : language === 'hi' ? 'अंतिम कतार स्थिति' : 'Last queue position'}</small>
+          <small>{language === 'mr' ? 'शे���टचे रांग स्थान' : language === 'hi' ? 'अंतिम कतार स्थिति' : 'Last queue position'}</small>
         </div>
       </div>
 
@@ -528,7 +517,7 @@ export default function OfficerDashboard({
             {language === 'mr'
               ? `या स्थिती बदलल्याने स्मार्ट क्यू इंजिन सर्व शेतकऱ्यांच्या आगमन वेळेची फेरगणना करते आणि सॉकेटद्वारे थेट प्रसारित करते.`
               : language === 'hi'
-              ? `इन परिस्थितियों को बदलने पर स्मार्ट क्यू इंजन सभी किसानों के आगमन समय की पुनर्गणना करता है और सॉकेट के माध्यम से प्रसारित करता है।`
+              ? `इन परिस्थितियों को बदलने पर स्मार्ट क्यू इंजन सभी किसानों के आगमन स��य की पुनर्गणना करता है और सॉकेट के माध्यम से प्रसारित करता है।`
               : `Adjusting these conditions calls PATCH /api/centres/${assignedCentreId.slice(0, 8)}. The Smart Queue Engine recalculates all farmer arrival windows and broadcasts via Socket.IO.`}
           </p>
 

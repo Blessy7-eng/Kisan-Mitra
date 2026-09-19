@@ -17,7 +17,6 @@ import {
   XCircle,
   ChevronRight,
   MapPin,
-  Globe,
 } from 'lucide-react'
 import { translations, Language } from '@/lib/i18n'
 
@@ -140,16 +139,6 @@ export default function AdminDashboard({
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {onLanguageChange && (
-            <label className="language-select">
-              <Globe size={13} />
-              <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
-                <option value="en">English</option>
-                <option value="hi">हिन्दी</option>
-                <option value="mr">मराठी</option>
-              </select>
-            </label>
-          )}
           <button className="button outline small" onClick={() => { fetchCentres(); fetchHealth(); }} disabled={loadingCentres}>
             <RefreshCw size={13} className={loadingCentres ? 'animate-spin' : ''} /> {language === 'mr' ? 'नेटवर्क रीफ्रेश करा' : language === 'hi' ? 'नेटवर्क रीफ्रेश करें' : 'Refresh Network'}
           </button>
@@ -357,52 +346,21 @@ export default function AdminDashboard({
           </div>
 
           <div style={{ display: 'grid', gap: '12px', marginTop: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Server size={16} color="#2f6f73" /> Express / Next.js REST API
-              </span>
-              <span className={`status-pill ${healthData?.status === 'ok' ? 'success' : 'danger'}`}>
-                {healthData?.status === 'ok' ? (language === 'mr' ? 'सुरू' : language === 'hi' ? 'सक्रिय' : 'Healthy') : (language === 'mr' ? 'बंद' : language === 'hi' ? 'डिस्कनेक्टेड' : 'Disconnected')}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Database size={16} color="#2f6f73" /> {a.database} (Prisma ORM)
-              </span>
-              <span className={`status-pill ${healthData?.database === 'connected' ? 'success' : 'warning'}`}>
-                {healthData?.database === 'connected' ? a.connected : healthData?.database || (language === 'mr' ? 'प्रलंबित' : language === 'hi' ? 'लंबित' : 'Pending')}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Radio size={16} color="#2f6f73" /> {a.realtimeServer}
-              </span>
-              <span className={`status-pill ${isSocketConnected ? 'success' : 'warning'}`}>
-                {isSocketConnected ? a.connected : (language === 'mr' ? 'जोडत आहे' : language === 'hi' ? 'कनेक्ट हो रहा है' : 'Connecting')}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
-                <Zap size={16} color="#2f6f73" /> {language === 'mr' ? 'स्मार्ट क्यू इंजिन' : language === 'hi' ? 'स्मार्ट क्यू इंजन' : 'Smart Queue Engine'}
-              </span>
-              <span className="status-pill success">
-                {a.ruleBasedActive}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px', padding: '12px', background: '#fbfdfe', border: '1px dashed #ccd7dc', borderRadius: '5px', fontSize: '11px', color: '#687882', lineHeight: 1.5 }}>
-            <b>{language === 'mr' ? 'ऐतिहासिक विश्लेषण सूचना:' : language === 'hi' ? 'ऐतिहासिक विश्लेषण सूचना:' : 'Historical Analytics Notice:'}</b>
-            <p style={{ margin: '4px 0 0' }}>
-              {language === 'mr'
-                ? 'ऐतिहासिक विश्लेषण — नियोजित (टप्पा २). थेट परिचालन माहिती स्मार्ट क्यू इंजिनशी समक्रमित आहे.'
-                : language === 'hi'
-                ? 'ऐतिहासिक विश्लेषण — नियोजित (चरण 2)। लाइव परिचालन टेलीमेट्री स्मार्ट क्यू इंजन से सिंक है।'
-                : 'Historical analytics — planned (Phase 2). Live operational telemetry is synchronized with the Smart Queue Engine.'}
-            </p>
+            {[
+              { label: 'API', icon: Server, status: healthData?.status === 'ok' ? 'Operational' : 'Checking' },
+              { label: 'Database', icon: Database, status: healthData?.database === 'connected' ? 'Connected' : 'Checking' },
+              { label: 'Live Queue Updates', icon: Radio, status: isSocketConnected ? 'Operational' : 'Connecting' },
+              { label: 'Centre Connectivity', icon: Zap, status: centres.length > 0 ? 'Online' : 'Checking' },
+            ].map(({ label, icon: Icon, status }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid #e1e8eb', borderRadius: '5px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#12304a' }}>
+                  <Icon size={16} color="#2f6f73" /> {label}
+                </span>
+                <span className={`status-pill ${status === 'Checking' || status === 'Connecting' ? 'warning' : 'success'}`}>
+                  {status}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       </div>

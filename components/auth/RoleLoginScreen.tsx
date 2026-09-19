@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,13 +11,19 @@ import {
   EyeOff,
   User,
   CheckCircle2,
-  Info,
   Globe,
+  Info,
 } from 'lucide-react'
 import { SelectedRole } from '../role-selection/RoleSelectionScreen'
 import { translations, Language } from '@/lib/i18n'
 
 type AuthMode = 'PASSWORD' | 'REGISTER'
+
+const demoCredentials: Record<SelectedRole, { phone: string; password: string }> = {
+  farmer: { phone: '9876543210', password: 'farmer123' },
+  officer: { phone: '9876543211', password: 'officer123' },
+  admin: { phone: '9876543212', password: 'admin123' },
+}
 
 interface RoleLoginScreenProps {
   selectedRole: SelectedRole
@@ -37,8 +43,8 @@ export default function RoleLoginScreen({
   const [mode, setMode] = useState<AuthMode>('PASSWORD')
 
   // Password Login States
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
+  const [identifier, setIdentifier] = useState(() => demoCredentials[selectedRole].phone)
+  const [password, setPassword] = useState(() => demoCredentials[selectedRole].password)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -54,6 +60,13 @@ export default function RoleLoginScreen({
   const [regSuccess, setRegSuccess] = useState<string | null>(null)
 
   const t = translations[currentLanguage]
+
+  useEffect(() => {
+    setIdentifier(demoCredentials[selectedRole].phone)
+    setPassword(demoCredentials[selectedRole].password)
+    setErrorMessage(null)
+    setRoleMismatch(false)
+  }, [selectedRole])
 
   // Configuration per selected role context
   const roleConfig = {
@@ -93,14 +106,6 @@ export default function RoleLoginScreen({
       demoPass: 'admin123',
     },
   }[selectedRole]
-
-  // Demo Access Fill (for evaluators/judges without displaying plain passwords)
-  const handleDemoAccess = () => {
-    setIdentifier(roleConfig.demoPhone)
-    setPassword(roleConfig.demoPass)
-    setErrorMessage(null)
-    setRoleMismatch(false)
-  }
 
   // Handle Real Password Login with Authoritative RBAC Check
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -408,17 +413,7 @@ export default function RoleLoginScreen({
               </div>
             )}
 
-            {/* Clean Demo Access for Evaluators (replaces Developer/Test UI) */}
-            <div className="demo-access-bar">
-              <button
-                type="button"
-                className="demo-access-btn"
-                onClick={handleDemoAccess}
-                title="Fill authorized credentials for testing"
-              >
-                <Info size={13} /> {t.login.demoAccessBtn}
-              </button>
-            </div>
+
           </form>
         )}
 

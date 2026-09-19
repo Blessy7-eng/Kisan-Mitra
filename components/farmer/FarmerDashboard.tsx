@@ -16,7 +16,6 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  Globe,
   Info,
   XCircle,
 } from 'lucide-react'
@@ -132,14 +131,6 @@ export default function FarmerDashboard({
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="language-select">
-              <Globe size={13} />
-              <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
-                <option value="en">English</option>
-                <option value="hi">हिन्दी</option>
-                <option value="mr">मराठी</option>
-              </select>
-            </label>
             <button className="button primary" onClick={onBookSlot} id="farmer-empty-book-top-btn">
               {f.bookSlot} <ArrowRight size={16} />
             </button>
@@ -183,7 +174,6 @@ export default function FarmerDashboard({
     { label: f.tokenNumber, detail: `${state.token} · ${f.bookingConfirmed}`, icon: ShieldCheck },
     { label: f.liveQueueStatus, detail: `${state.ahead} ${f.farmersAhead}`, icon: Users },
     { label: f.procStatus, detail: state.stage === 'Procurement completed' ? f.stageProcCompleted : f.stageProduceVerification, icon: Activity },
-    { label: f.payStatus, detail: f.dbtProcessing, icon: TrendingUp },
   ]
 
   const progress = Math.min(88, 44 + state.ahead * 3)
@@ -206,7 +196,7 @@ export default function FarmerDashboard({
         <div className="inline-alert warning" style={{ marginBottom: '18px' }}>
           <AlertTriangle size={17} />
           <div>
-            <b>{language === 'mr' ? 'आपला स्लॉट चुकला आहे का?' : language === 'hi' ? 'क्या आपका स्लॉट छूट गया?' : 'Missed your procurement slot?'}</b>
+            <b>{language === 'mr' ? 'आपला स्लॉट चुकला आहे का?' : language === 'hi' ? 'क्या आप���ा स्लॉट छूट गया?' : 'Missed your procurement slot?'}</b>
             <span>
               {language === 'mr'
                 ? `स्मार्ट क्यू इंजिनने ${recovery.centre} येथे ${recovery.slot} साठी रिकव्हरी स्लॉट शोधला आहे. अंदाजे प्रतीक्षा: ${recovery.wait} मिनिटे.`
@@ -236,14 +226,6 @@ export default function FarmerDashboard({
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <label className="language-select">
-            <Globe size={13} />
-            <select value={language} onChange={(e: any) => onLanguageChange(e.target.value as Language)}>
-              <option value="en">English</option>
-              <option value="hi">हिन्दी</option>
-              <option value="mr">मराठी</option>
-            </select>
-          </label>
           <button className="button primary" onClick={onBookSlot} id="farmer-book-slot-top-btn">
             {f.bookSlot} <ArrowRight size={16} />
           </button>
